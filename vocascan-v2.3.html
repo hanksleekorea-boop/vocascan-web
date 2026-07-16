@@ -556,7 +556,7 @@ let state=readStoredJson("voca_v1",null);
 if(!state) state={level:null,trust:1.0,words:{},streak:0,lastDay:null,total:0,latencies:[]};
 function save(){storageSet("voca_v1",JSON.stringify(state));}
 const APP_VER="v2.3";
-const BUILD_ID="2026-07-16.2"; /* F36: S-1 실사용 이탈 보완 — 결과화면 다음 행동 명시+주 CTA prog_pick 계측. 내용 바뀔 때마다 이 값도 반드시 갱신 */
+const BUILD_ID="2026-07-16.3"; /* F37: 모든 study/promo 시작 경로에 prog_pick 중앙 보장. 내용 바뀔 때마다 이 값도 반드시 갱신 */
 /* ── 계측: 이벤트 로그(localStorage voca_log, 최대 500건) ── */
 function evlog(ev,d){const L=readStoredJson("voca_log",runtimeLog);runtimeLog=Array.isArray(L)?L:runtimeLog;runtimeLog.push([Date.now(),ev,d===undefined?null:d]);while(runtimeLog.length>500)runtimeLog.shift();storageSet("voca_log",JSON.stringify(runtimeLog));}
 window.vocaLog=function(){const L=readStoredJson("voca_log",runtimeLog);runtimeLog=Array.isArray(L)?L:runtimeLog;return runtimeLog;};
@@ -844,7 +844,16 @@ $$(".tab").forEach(t=>t.onclick=()=>{
 const sess={mode:null,queue:[],idx:0,startTs:0,cardTs:0,latTimer:null,
   seq:[],results:[],deadline:0,probing:false};
 
+/* F37: 홈·오답·재시도 등 어떤 진입점도 스텝6 계측을 빠뜨리지 않도록 세션 엔진에서 중앙 보장.
+   결과화면처럼 직전에 명시적으로 기록한 경로는 3초 이내 중복을 억제한다. */
+function ensureProgramPick(mode){
+  if(mode!=="study"&&mode!=="promo")return;
+  const L=window.vocaLog(),last=L[L.length-1],now=Date.now();
+  if(last&&last[1]==="prog_pick"&&typeof last[0]==="number"&&now-last[0]<3000)return;
+  evlog("prog_pick",{pg:"auto",promo:mode==="promo",source:"session"});
+}
 function startSession(mode,queue,opts){
+  ensureProgramPick(mode);
   Object.assign(sess,{mode,queue,idx:0,seq:[],results:[],probing:false,history:[],
     noTimer:!!(opts&&opts.noTimer),
     startTs:Date.now(),deadline:mode==="scan"?Date.now()+60000:0});
