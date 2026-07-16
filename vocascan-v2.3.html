@@ -520,6 +520,9 @@ Object.assign(I18N.en,{covSect:"Grade & CSAT Coverage",gradeCov:"Coverage up to 
 Object.assign(I18N.ko,{storageUnavailable:"이 환경에서는 학습 기록이 이 화면에만 임시 보관됩니다. 새로고침하거나 닫으면 저장되지 않으니, 기록을 복사한 뒤 일반 브라우저에서 다시 열어주세요."});
 Object.assign(I18N.th,{storageUnavailable:"สภาพแวดล้อมนี้เก็บข้อมูลการเรียนไว้ชั่วคราวเฉพาะในหน้านี้ รีเฟรชหรือปิดแล้วข้อมูลจะไม่ถูกบันทึก โปรดคัดลอกบันทึกแล้วเปิดใหม่ในเบราว์เซอร์ปกติ"});
 Object.assign(I18N.en,{storageUnavailable:"This environment can keep your learning data only while this page stays open. Refreshing or closing will not save it; copy your log and reopen the app in a regular browser."});
+Object.assign(I18N.ko,{scanNextRequired:"다음 단계 · 아래 추천 프로그램 1개를 끝까지 완료하면 진단이 끝납니다."});
+Object.assign(I18N.th,{scanNextRequired:"ขั้นตอนถัดไป · ทำโปรแกรมแนะนำด้านล่างให้จบ 1 โปรแกรมเพื่อเสร็จสิ้นการวินิจฉัย"});
+Object.assign(I18N.en,{scanNextRequired:"Next step · Complete one recommended program below to finish your diagnosis."});
 function t(key){return (I18N[state.lang||"ko"]||I18N.ko)[key]||key;}
 /* 뜻 조회: 언어별 분기 (태국어 없으면 한국어 폴백) */
 function thMean(k){k=k.toLowerCase();return Object.prototype.hasOwnProperty.call(TH_MEANINGS,k)?TH_MEANINGS[k]:null;}
@@ -553,7 +556,7 @@ let state=readStoredJson("voca_v1",null);
 if(!state) state={level:null,trust:1.0,words:{},streak:0,lastDay:null,total:0,latencies:[]};
 function save(){storageSet("voca_v1",JSON.stringify(state));}
 const APP_VER="v2.3";
-const BUILD_ID="2026-07-16.1"; /* F24: 모든 화면(신분설정/세션/결과/통계/랭킹/상세튜토리얼)에서 언어전환 가능하게 확장 — 내용 바뀔 때마다 이 값도 반드시 갱신(버전관리 사고 방지, 07-13 도입) */
+const BUILD_ID="2026-07-16.2"; /* F36: S-1 실사용 이탈 보완 — 결과화면 다음 행동 명시+주 CTA prog_pick 계측. 내용 바뀔 때마다 이 값도 반드시 갱신 */
 /* ── 계측: 이벤트 로그(localStorage voca_log, 최대 500건) ── */
 function evlog(ev,d){const L=readStoredJson("voca_log",runtimeLog);runtimeLog=Array.isArray(L)?L:runtimeLog;runtimeLog.push([Date.now(),ev,d===undefined?null:d]);while(runtimeLog.length>500)runtimeLog.shift();storageSet("voca_log",JSON.stringify(runtimeLog));}
 window.vocaLog=function(){const L=readStoredJson("voca_log",runtimeLog);runtimeLog=Array.isArray(L)?L:runtimeLog;return runtimeLog;};
@@ -1234,6 +1237,7 @@ function renderResultBox(){
     '<div style="font-size:17px;font-weight:800">'+frameLabel(state.level)+'</div>'+
     '<div style="font-size:14px;line-height:1.8">'+line3+'</div>'+
     '<div style="font-size:11px;color:var(--mute)">'+t('estVocab')+' '+est.toLocaleString()+t('scanWordUnit')+' · '+sess.seq.length+' '+t('respAnalyzed')+'</div>'+
+    '<div style="width:100%;max-width:340px;padding:10px 12px;border-radius:12px;background:rgba(245,185,60,.12);border:1px solid rgba(245,185,60,.35);color:var(--accent);font-size:12px;font-weight:700;line-height:1.55">'+t('scanNextRequired')+'</div>'+
     '<button class="bigbtn" id="scanCta"></button>'+
     '<div style="font-size:12px"><a id="whyLevel" style="color:var(--mute);text-decoration:underline;cursor:pointer">'+t('whyLevel')+'</a></div>'+
     '<div id="postScanProgs" style="width:100%;max-width:340px"></div>'+
@@ -1243,7 +1247,7 @@ function renderResultBox(){
   const co=coachPick();
   const cta=$("#scanCta");
   if(cta){cta.textContent="🤖 "+t(co.key+"b")+" · "+co.q.length+t("cnt");
-    cta.onclick=()=>{if(!co.q.length){show("home");return;}state.coachCtx=null;save();startSession("study",co.q);};}
+    cta.onclick=()=>{if(!co.q.length){show("home");return;}evlog("prog_pick",{pg:"coach",promo:false,source:"primary"});state.coachCtx=null;save();startSession("study",co.q);};}
   const wl=$("#whyLevel");if(wl)wl.onclick=()=>openTutorial(1,"result");
   const rtr=$("#btnRetestResult");
   if(rtr)rtr.onclick=()=>{if(confirm(t('retestConfirm')))startSession("scan",[]);};
@@ -1264,7 +1268,7 @@ function renderResultBox(){
       progs.map((p,i)=>'<div class="pack" data-pg="'+i+'" style="padding:11px 14px;text-align:left"><div><div class="pt">'+p.ic+' '+p.lbl+'</div><div class="pc">'+p.cap+'</div></div><div class="go">'+t("start2")+'</div></div>').join("");
     box.querySelectorAll("[data-pg]").forEach(el=>el.onclick=()=>{
       const p=progs[+el.dataset.pg];
-      evlog("prog_pick",{pg:+el.dataset.pg,promo:!!p.promo});
+      evlog("prog_pick",{pg:+el.dataset.pg,promo:!!p.promo,source:"list"});
       if(p.promo){startPromo();return;}
       if(!p.q.length){toast(t("emptyPack"));return;}
       startSession("study",p.q);
