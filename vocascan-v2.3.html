@@ -552,6 +552,9 @@ Object.assign(I18N.en,{savedManager:"Manage Saved Words",savedManagerDesc:"Find 
 Object.assign(I18N.ko,{rankCountryPick:"비교 국가",rankCountryHint:"내 설정은 바꾸지 않고 랭킹 코호트만 비교합니다.",rankMyCountry:"내 국가"});
 Object.assign(I18N.th,{rankCountryPick:"ประเทศที่เปรียบเทียบ",rankCountryHint:"เปรียบเทียบเฉพาะกลุ่มอันดับ โดยไม่เปลี่ยนการตั้งค่าของฉัน",rankMyCountry:"ประเทศของฉัน"});
 Object.assign(I18N.en,{rankCountryPick:"Compare country",rankCountryHint:"This compares the ranking cohort only and does not change your profile.",rankMyCountry:"My country"});
+Object.assign(I18N.ko,{wrongFilterAll:"전체",wrongFilterWeak:"미정복",wrongFilterRecovering:"회복중",wrongSortRecent:"최근 오답순",wrongSortCount:"오답 많은 순",wrongSortWeak:"낮은 숙련도순",wrongShown:"개 표시",wrongFilteredReview:"현재 목록 복습",wrongFilteredReviewDesc:"필터·정렬된 오답만 다시 풉니다",noWrongFilter:"조건에 맞는 오답이 없어요."});
+Object.assign(I18N.th,{wrongFilterAll:"ทั้งหมด",wrongFilterWeak:"ยังไม่พิชิต",wrongFilterRecovering:"กำลังฟื้น",wrongSortRecent:"ผิดล่าสุด",wrongSortCount:"ผิดมากสุด",wrongSortWeak:"ความแม่นต่ำสุด",wrongShown:"คำที่แสดง",wrongFilteredReview:"ทบทวนรายการนี้",wrongFilteredReviewDesc:"ทบทวนเฉพาะคำผิดที่กรองและเรียงแล้ว",noWrongFilter:"ไม่มีคำผิดที่ตรงเงื่อนไข"});
+Object.assign(I18N.en,{wrongFilterAll:"All",wrongFilterWeak:"Not mastered",wrongFilterRecovering:"Recovering",wrongSortRecent:"Most recent",wrongSortCount:"Most missed",wrongSortWeak:"Lowest mastery",wrongShown:"shown",wrongFilteredReview:"Review this list",wrongFilteredReviewDesc:"Study only the filtered and sorted wrong words",noWrongFilter:"No wrong words match this filter."});
 function t(key){return (I18N[state.lang||"ko"]||I18N.ko)[key]||key;}
 /* 뜻 조회: 언어별 분기 (태국어 없으면 한국어 폴백) */
 function thMean(k){k=k.toLowerCase();return Object.prototype.hasOwnProperty.call(TH_MEANINGS,k)?TH_MEANINGS[k]:null;}
@@ -591,7 +594,7 @@ let state=readStoredJson("voca_v1",null);
 if(!state) state={level:null,trust:1.0,words:{},streak:0,lastDay:null,total:0,latencies:[]};
 function save(){storageSet("voca_v1",JSON.stringify(state));}
 const APP_VER="v2.3";
-const BUILD_ID="2026-07-17.8"; /* F46: 랭킹 비교 국가 코호트. 내용 바뀔 때마다 이 값도 반드시 갱신 */
+const BUILD_ID="2026-07-17.9"; /* F47: 오답 아카이브 필터·정렬·재학습. 내용 바뀔 때마다 이 값도 반드시 갱신 */
 const PUBLIC_APP_URL="https://hanksleekorea-boop.github.io/vocascan-web/?build="+BUILD_ID;
 /* ── 계측: 이벤트 로그(localStorage voca_log, 최대 500건) ── */
 function evlog(ev,d){const L=readStoredJson("voca_log",runtimeLog);runtimeLog=Array.isArray(L)?L:runtimeLog;runtimeLog.push([Date.now(),ev,d===undefined?null:d]);while(runtimeLog.length>500)runtimeLog.shift();storageSet("voca_log",JSON.stringify(runtimeLog));}
@@ -1973,6 +1976,24 @@ function renderRank(){
   $("#rankBox").querySelectorAll("[data-rc]").forEach(b=>b.onclick=()=>{state.rankCountry=b.dataset.rc;save();renderRank();});
 }
 
+const WRONG_ARCHIVE_FILTERS=Object.freeze(['all','weak','recovering']);
+const WRONG_ARCHIVE_SORTS=Object.freeze(['recent','count','mastery']);
+function wrongArchivePrefs(){
+  const filter=WRONG_ARCHIVE_FILTERS.includes(state.wrongArchiveFilter)?state.wrongArchiveFilter:'all';
+  const sort=WRONG_ARCHIVE_SORTS.includes(state.wrongArchiveSort)?state.wrongArchiveSort:'recent';
+  return{filter,sort};
+}
+function wrongArchiveEntries(entries,filter='all',sort='recent'){
+  const mastery=w=>typeof w.K==='number'?w.K:0;
+  const rows=entries.filter(([,w])=>w.wrong>0).filter(([,w])=>
+    filter==='weak'?mastery(w)<0.5:filter==='recovering'?mastery(w)>=0.5:true);
+  const newest=(a,b)=>(b[1].lastTs||0)-(a[1].lastTs||0);
+  return rows.sort((a,b)=>{
+    if(sort==='count')return (b[1].wrong-a[1].wrong)||newest(a,b);
+    if(sort==='mastery')return (mastery(a[1])-mastery(b[1]))||(b[1].wrong-a[1].wrong)||newest(a,b);
+    return newest(a,b);
+  });
+}
 function renderStats(){
   const entries=Object.entries(state.words).filter(([k,w])=>w.seen>0);
   const ws=entries.map(([k,w])=>w);
@@ -2004,16 +2025,27 @@ function renderStats(){
     'background:'+(i===6?'var(--accent)':'#4a5158')+';border-radius:3px" title="'+d.xp+'XP"></div>'+
     '<div style="font-size:9px;color:var(--mute);margin-top:3px">'+d.lbl+'</div></div>').join('');
 
-  /* 오답 아카이브(최근 오답 20) */
-  const wrongs=entries.filter(([k,w])=>w.wrong>0).sort((a,b)=>(b[1].lastTs||0)-(a[1].lastTs||0)).slice(0,20);
+  /* 오답 아카이브: 상태 필터·정렬과 현재 목록 재학습 */
+  const allWrongs=wrongArchiveEntries(entries);
+  const {filter:wrongFilter,sort:wrongSort}=wrongArchivePrefs();
+  const wrongs=wrongArchiveEntries(entries,wrongFilter,wrongSort);
+  const visibleWrongs=wrongs.slice(0,50);
+  const wrongReviewCount=Math.min(15,wrongs.length);
   const meanOf={};WORDS.forEach(w=>meanOf[w[0]]=(state.lang==="th"?(thMean(w[0])||w[1]):w[1]));
-  const archive=wrongs.length?wrongs.map(([k,w])=>{
+  const archive=wrongs.length?visibleWrongs.map(([k,w])=>{
     const ago=w.lastTs?timeAgo(w.lastTs):'';
     return '<div class="pack" style="cursor:default;padding:11px 14px"><div><div class="pt">'+k+'<button class="ttsbtn-s" data-say="'+k+'">🔊</button>'+
       ' <span style="font-size:12px;color:var(--mute);font-weight:400">'+(meanOf[k]||'')+'</span></div>'+
       '<div class="pc">✕ '+w.wrong+t('wrongTimes')+' · '+ago+'</div></div>'+
       '<div class="go" style="color:'+(w.K>=0.5?'var(--o)':'var(--x)')+'">'+(w.K>=0.5?t('recovering'):t('notyet'))+'</div></div>';
-  }).join(''):'<div class="footnote">'+t('noWrong')+'</div>';
+  }).join(''):'<div class="footnote">'+(allWrongs.length?t('noWrongFilter'):t('noWrong'))+'</div>';
+  const wrongControls=allWrongs.length?
+    '<div style="display:flex;gap:6px;margin:-2px 0 8px">'+
+    [['all','wrongFilterAll'],['weak','wrongFilterWeak'],['recovering','wrongFilterRecovering']].map(([key,label])=>
+      '<button class="btn'+(wrongFilter===key?' accent':'')+'" data-wf="'+key+'" style="flex:1;padding:7px 4px;font-size:11px">'+t(label)+'</button>').join('')+'</div>'+
+    '<div style="display:flex;gap:6px;margin:0 0 10px">'+
+    [['recent','wrongSortRecent'],['count','wrongSortCount'],['mastery','wrongSortWeak']].map(([key,label])=>
+      '<button class="btn'+(wrongSort===key?' accent':'')+'" data-ws="'+key+'" style="flex:1;padding:7px 3px;font-size:10px">'+t(label)+'</button>').join('')+'</div>':'';
 
   $("#statsBox").innerHTML=
     '<div style="display:flex;gap:8px;margin-bottom:4px">'+
@@ -2057,8 +2089,8 @@ function renderStats(){
     '<div class="pack" style="cursor:default"><div><div class="pt">'+t('median')+' '+(med/1000).toFixed(1)+'s</div>'+
     '<div class="pc">Trust '+state.trust.toFixed(2)+' · '+t('trustDesc')+'</div></div></div>'+
 
-    '<div class="sect">'+t('wrongArchive')+' · '+wrongs.length+'</div>'+
-    (wrongs.length>=3?'<div class="pack" id="reviewWrong" style="border-color:var(--accent);cursor:pointer"><div><div class="pt">🔁 '+t('reviewWrongT')+' '+Math.min(15,wrongs.length)+' '+t('reviewWrongC')+'</div><div class="pc">'+t('reviewWrongD')+'</div></div><div class="go">'+t('start2')+'</div></div>':'')+
+    '<div class="sect">'+t('wrongArchive')+' · '+wrongs.length+'/'+allWrongs.length+' '+t('wrongShown')+'</div>'+wrongControls+
+    (wrongs.length?'<div class="pack" id="reviewWrong" style="border-color:var(--accent);cursor:pointer"><div><div class="pt">🔁 '+t('wrongFilteredReview')+' · '+wrongReviewCount+t('cnt')+'</div><div class="pc">'+t('wrongFilteredReviewDesc')+'</div></div><div class="go">'+t('start2')+'</div></div>':'')+
     archive+
 
     '<div style="margin-top:16px"><button class="bigbtn ghostbtn" style="max-width:none" id="btnRescan">'+t('rescanBtn')+'</button>'+
@@ -2078,6 +2110,8 @@ function renderStats(){
     const q=wrongs.slice(0,15).map(([k])=>idxMap[k]).filter(i=>i!==undefined);
     if(q.length)startSession("study",q,{noTimer:true}); /* 오답 복습: 무타이머 */
   };
+  $("#statsBox").querySelectorAll("[data-wf]").forEach(b=>b.onclick=()=>{state.wrongArchiveFilter=b.dataset.wf;save();renderStats();});
+  $("#statsBox").querySelectorAll("[data-ws]").forEach(b=>b.onclick=()=>{state.wrongArchiveSort=b.dataset.ws;save();renderStats();});
 }
 function timeAgo(ts){const s=(Date.now()-ts)/1000;
   const M={ko:["분 전","시간 전","일 전"],th:["นาทีก่อน","ชม.ก่อน","วันก่อน"],en:["m ago","h ago","d ago"]};
