@@ -556,7 +556,7 @@ let state=readStoredJson("voca_v1",null);
 if(!state) state={level:null,trust:1.0,words:{},streak:0,lastDay:null,total:0,latencies:[]};
 function save(){storageSet("voca_v1",JSON.stringify(state));}
 const APP_VER="v2.3";
-const BUILD_ID="2026-07-16.4"; /* F38: 세션 완료 이벤트는 한 번만 기록. 내용 바뀔 때마다 이 값도 반드시 갱신 */
+const BUILD_ID="2026-07-17.1"; /* F39: 추천 프로그램은 핵심 대상이 적어도 15문제 연속 세션으로 보충. 내용 바뀔 때마다 이 값도 반드시 갱신 */
 /* ── 계측: 이벤트 로그(localStorage voca_log, 최대 500건) ── */
 function evlog(ev,d){const L=readStoredJson("voca_log",runtimeLog);runtimeLog=Array.isArray(L)?L:runtimeLog;runtimeLog.push([Date.now(),ev,d===undefined?null:d]);while(runtimeLog.length>500)runtimeLog.shift();storageSet("voca_log",JSON.stringify(runtimeLog));}
 window.vocaLog=function(){const L=readStoredJson("voca_log",runtimeLog);runtimeLog=Array.isArray(L)?L:runtimeLog;return runtimeLog;};
@@ -1253,10 +1253,10 @@ function renderResultBox(){
     '<button class="bigbtn ghostbtn" onclick="show(\'home\')" style="margin-top:2px">'+t('homeBtn')+'</button>'+
     '<button id="btnRetestResult" data-testid="btn-retest-result" style="background:none;border:none;'+
     'color:var(--mute);font-family:inherit;font-size:12px;text-decoration:underline;cursor:pointer;margin-top:6px">'+t('retest')+'</button>';
-  const co=coachPick();
+  const co=coachPick(),coQueue=recommendedQueue(co.q);
   const cta=$("#scanCta");
-  if(cta){cta.textContent="🤖 "+t(co.key+"b")+" · "+co.q.length+t("cnt");
-    cta.onclick=()=>{if(!co.q.length){show("home");return;}evlog("prog_pick",{pg:"coach",promo:false,source:"primary"});state.coachCtx=null;save();startSession("study",co.q);};}
+  if(cta){cta.textContent="🤖 "+t(co.key+"b")+" · "+coQueue.length+t("cnt");
+    cta.onclick=()=>{if(!coQueue.length){show("home");return;}evlog("prog_pick",{pg:"coach",promo:false,source:"primary"});state.coachCtx=null;save();startSession("study",coQueue);};}
   const wl=$("#whyLevel");if(wl)wl.onclick=()=>openTutorial(1,"result");
   const rtr=$("#btnRetestResult");
   if(rtr)rtr.onclick=()=>{if(confirm(t('retestConfirm')))startSession("scan",[]);};
@@ -1280,7 +1280,7 @@ function renderResultBox(){
       evlog("prog_pick",{pg:+el.dataset.pg,promo:!!p.promo,source:"list"});
       if(p.promo){startPromo();return;}
       if(!p.q.length){toast(t("emptyPack"));return;}
-      startSession("study",p.q);
+      startSession("study",recommendedQueue(p.q));
     });
   }
 }
@@ -1467,12 +1467,10 @@ function finishStudy(){
       if(cur>=target){clearInterval(iv);}},28);
   })();
   $("#rxBtn").onclick=()=>{
-    show("home");
-    setTimeout(()=>{
-      if(rxAct==="up"){const b=$("#packList [data-lv=\""+Math.min(9,Math.round((state.level||1))+1)+"\"]");if(b)b.click();return;}
-      const packMap={unk:2,slow:1,due:0};
-      const el=$("#packList .pack[data-p=\""+packMap[rxAct]+"\"]");if(el)el.click();
-    },60);
+    const kind={unk:"unk",slow:"slow",due:"due",up:"up"}[rxAct];
+    const p=buildPacks().find(x=>x.kind===kind);
+    const q=recommendedQueue(p&&p.q);
+    if(q.length)startSession("study",q);else show("home");
   };
   const retryEl=$("#btnStudyRetry");
   if(retryEl)retryEl.onclick=()=>{if(retryQueue.length)startSession("study",retryQueue);else show("home");};
@@ -1499,6 +1497,30 @@ function aiPredict(n){
   });
   cand.sort((a,b)=>b.p-a.p||Math.random()-0.5);
   return cand.slice(0,n);
+}
+/* F39: 추천 프로그램의 핵심 대상이 1~2개뿐이어도 결과 화면으로 매번 끊지 않는다.
+   핵심 대상은 앞에 보존하고, 취약·AI예측·현재 레벨 문제를 중복 없이 보충해 15문제 연속 세션을 만든다. */
+const RECOMMENDED_PROGRAM_N=15;
+function recommendedQueue(primary,target){
+  target=Math.max(1,target||RECOMMENDED_PROGRAM_N);
+  const out=[],used=new Set();
+  const add=i=>{if(Number.isInteger(i)&&i>=0&&i<WORDS.length&&!used.has(i)){used.add(i);out.push(i);}};
+  (Array.isArray(primary)?primary:[]).forEach(add);
+  if(out.length>=target)return out.slice(0,target);
+  const now=Date.now(),lv=Math.max(1,Math.min(9,Math.round(state.level||3)));
+  const G=i=>{const k=WORDS[i][0];return Object.prototype.hasOwnProperty.call(state.words,k)?state.words[k]:null;};
+  const shuf=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+  const weak=[],near=[];
+  WORDS.forEach((w,i)=>{
+    const g=G(i),seen=!!(g&&g.seen>0);
+    if(seen&&(g.due<=now||g.K<0.9||g.slowO||g.fastX))weak.push(i);
+    if(Math.abs(w[2]-lv)<=1&&(!seen||g.K<0.9))near.push(i);
+  });
+  [shuf(weak),aiPredict(target*4).map(x=>x.i),shuf(near),
+    shuf(WORDS.map((w,i)=>i).filter(i=>WORDS[i][2]===lv))].forEach(pool=>{
+      for(const i of pool){add(i);if(out.length>=target)break;}
+  });
+  return out.slice(0,target);
 }
 /* ── AI 코치: 다음 행동 결정 트리 (F6) ── */
 function coachPick(){
@@ -1564,16 +1586,16 @@ function buildPacks(){
   let savedIdx=[];
   if(savedKeys.length){const idx={};WORDS.forEach((w,i)=>idx[w[0]]=i);savedIdx=savedKeys.map(k=>idx[k]).filter(i=>i!==undefined);}
   const packs=[
-    ...(savedIdx.length?[{icon:"⭐",title:t("pkSavedT")+" "+savedIdx.length+t("cnt"),cap:t("pkSavedC"),q:shuf(savedIdx.slice()).slice(0,15)}]:[]),
-    {icon:"🌙",title:t("pkReviewT")+" "+due.length+t("cnt"),cap:t("pkReviewC"),q:shuf(due).slice(0,15)},
-    {icon:"⚡",title:t("pkSlowT"),cap:t("pkSlowC")+" "+slow.length+t("cnt"),q:shuf(slow).slice(0,15)},
-    {icon:"🧨",title:t("pkUnkT"),cap:t("pkUnkC")+" "+unk.length+t("cnt"),q:shuf(unk).slice(0,15)},
-    {icon:"🚀",title:"LV"+lv+" "+t("pkFreshT"),cap:"LV"+lv+" "+t("lvLabel")+" "+lvTotal+" · "+fresh.length,q:shuf(fresh).slice(0,15)},
-    {icon:"⛰",title:"LV"+Math.min(9,lv+1)+" "+t("pkUpT"),cap:"LV"+Math.min(9,lv+1)+" "+t("lvLabel")+" "+lvUpTotal,q:shuf(freshUp).slice(0,15)},
-    ...(lv>1?[{icon:"🧱",title:"LV"+lvDn+" "+t("pkDownT"),cap:"LV"+lvDn+" "+t("lvLabel")+" "+WORDS.filter(w=>w[2]===lvDn).length,q:shuf(freshDn).slice(0,15)}]:[]),
-    {icon:"💼",title:t("pkToeicT"),cap:t("pkToeicT")+" "+toeic.length+t("cnt"),q:shuf(toeic.slice()).slice(0,15),exam:1},
-    {icon:"🎓",title:t("pkToeflT"),cap:t("pkToeflT")+" "+toefl.length+t("cnt"),q:shuf(toefl.slice()).slice(0,15),exam:1},
-    {icon:"🏛",title:t("pkGreT"),cap:t("pkGreT")+" "+gre.length+t("cnt"),q:shuf(gre.slice()).slice(0,15),exam:1},
+    ...(savedIdx.length?[{kind:"saved",icon:"⭐",title:t("pkSavedT")+" "+savedIdx.length+t("cnt"),cap:t("pkSavedC"),q:shuf(savedIdx.slice()).slice(0,15)}]:[]),
+    {kind:"due",icon:"🌙",title:t("pkReviewT")+" "+due.length+t("cnt"),cap:t("pkReviewC"),q:shuf(due).slice(0,15)},
+    {kind:"slow",icon:"⚡",title:t("pkSlowT"),cap:t("pkSlowC")+" "+slow.length+t("cnt"),q:shuf(slow).slice(0,15)},
+    {kind:"unk",icon:"🧨",title:t("pkUnkT"),cap:t("pkUnkC")+" "+unk.length+t("cnt"),q:shuf(unk).slice(0,15)},
+    {kind:"fresh",icon:"🚀",title:"LV"+lv+" "+t("pkFreshT"),cap:"LV"+lv+" "+t("lvLabel")+" "+lvTotal+" · "+fresh.length,q:shuf(fresh).slice(0,15)},
+    {kind:"up",icon:"⛰",title:"LV"+Math.min(9,lv+1)+" "+t("pkUpT"),cap:"LV"+Math.min(9,lv+1)+" "+t("lvLabel")+" "+lvUpTotal,q:shuf(freshUp).slice(0,15)},
+    ...(lv>1?[{kind:"down",icon:"🧱",title:"LV"+lvDn+" "+t("pkDownT"),cap:"LV"+lvDn+" "+t("lvLabel")+" "+WORDS.filter(w=>w[2]===lvDn).length,q:shuf(freshDn).slice(0,15)}]:[]),
+    {kind:"toeic",icon:"💼",title:t("pkToeicT"),cap:t("pkToeicT")+" "+toeic.length+t("cnt"),q:shuf(toeic.slice()).slice(0,15),exam:1},
+    {kind:"toefl",icon:"🎓",title:t("pkToeflT"),cap:t("pkToeflT")+" "+toefl.length+t("cnt"),q:shuf(toefl.slice()).slice(0,15),exam:1},
+    {kind:"gre",icon:"🏛",title:t("pkGreT"),cap:t("pkGreT")+" "+gre.length+t("cnt"),q:shuf(gre.slice()).slice(0,15),exam:1},
   ];
   return packs;
 }
@@ -1619,11 +1641,11 @@ function renderHome(){
     '<div class="pc">'+(cool?t("cooldown")+" "+Math.ceil((state.promoUntil-Date.now())/3600000)+t("hours")+" "+t("testNow"):
     t("promoDesc")+(pEst!==null?' · '+t("promoEst")+' ~'+pEst+'%':''))+'</div></div>'+
     '<div class="go">'+t('challenge')+'</div></div>':"";
-  const co=coachPick();
+  const co=coachPick(),coQueue=recommendedQueue(co.q);
   const coachHtml='<div class="pack" id="coachCard" style="border-color:var(--gold);background:linear-gradient(135deg,rgba(255,210,74,.10),transparent)">'+
     '<div><div class="pc" style="color:var(--accent);font-weight:700">🤖 '+t("coachHi")+'</div>'+
     '<div class="pt" style="margin-top:2px">'+t(co.key)+'</div>'+
-    '<div class="pc">'+co.q.length+t("cnt")+' · '+t("secAbout")+' '+Math.round(co.q.length*7.5)+t("secUnit")+'</div></div>'+
+    '<div class="pc">'+coQueue.length+t("cnt")+' · '+t("secAbout")+' '+Math.round(coQueue.length*7.5)+t("secUnit")+'</div></div>'+
     '<div class="go">'+t(co.key+"b")+' ›</div></div>';
   const packs=buildPacks();
   $("#packList").innerHTML=coachHtml+promoHtml+packs.map((p,i)=>{
@@ -1636,7 +1658,7 @@ function renderHome(){
   const promoEl=$("#promoPack");
   if(promoEl)promoEl.onclick=startPromo;
   const coEl=$("#coachCard");
-  if(coEl)coEl.onclick=()=>{if(!co.q.length){toast(t("emptyPack"));return;}state.coachCtx=null;save();startSession("study",co.q);};
+  if(coEl)coEl.onclick=()=>{if(!coQueue.length){toast(t("emptyPack"));return;}state.coachCtx=null;save();startSession("study",coQueue);};
   $("#packList").querySelectorAll(".pack[data-p]").forEach(el=>{
     el.onclick=()=>{
       const p=buildPacks()[+el.dataset.p];
