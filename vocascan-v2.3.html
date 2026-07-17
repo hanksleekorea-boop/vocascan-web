@@ -528,6 +528,12 @@ function t(key){return (I18N[state.lang||"ko"]||I18N.ko)[key]||key;}
 function thMean(k){k=k.toLowerCase();return Object.prototype.hasOwnProperty.call(TH_MEANINGS,k)?TH_MEANINGS[k]:null;}
 function meaning(i){const w=WORDS[i];if(state.lang==="th")return thMean(w[0])||w[1];return w[1];}
 
+/* F42: small, source-backed CEFR anchor correction. LV2=A2, LV4=B1, LV5=B2;
+   mutate the canonical pool once so scan, packs, stats, and probes share one level. */
+const LEVEL_CALIBRATION=Object.freeze({available:2,condition:4,system:4,role:4,factor:5,institution:5});
+const WORD_INDEX_BY_KEY=new Map(WORDS.map((w,i)=>[w[0],i]));
+Object.entries(LEVEL_CALIBRATION).forEach(([word,level])=>{const i=WORD_INDEX_BY_KEY.get(word);if(i!==undefined)WORDS[i][2]=level;});
+
 /* 시험 태그: {단어: [시험]} */
 
 
@@ -556,7 +562,7 @@ let state=readStoredJson("voca_v1",null);
 if(!state) state={level:null,trust:1.0,words:{},streak:0,lastDay:null,total:0,latencies:[]};
 function save(){storageSet("voca_v1",JSON.stringify(state));}
 const APP_VER="v2.3";
-const BUILD_ID="2026-07-17.3"; /* F41: 온보딩 완료 계측과 안정적인 셸 식별자. 내용 바뀔 때마다 이 값도 반드시 갱신 */
+const BUILD_ID="2026-07-17.4"; /* F42: CEFR 앵커 재배치와 적응형 스캔 수렴 보정. 내용 바뀔 때마다 이 값도 반드시 갱신 */
 /* ── 계측: 이벤트 로그(localStorage voca_log, 최대 500건) ── */
 function evlog(ev,d){const L=readStoredJson("voca_log",runtimeLog);runtimeLog=Array.isArray(L)?L:runtimeLog;runtimeLog.push([Date.now(),ev,d===undefined?null:d]);while(runtimeLog.length>500)runtimeLog.shift();storageSet("voca_log",JSON.stringify(runtimeLog));}
 window.vocaLog=function(){const L=readStoredJson("voca_log",runtimeLog);runtimeLog=Array.isArray(L)?L:runtimeLog;return runtimeLog;};
@@ -1208,17 +1214,23 @@ function showProbe(wi,lat){
 }
 
 /* ── 스캔 종료: 레벨 추정 + 듀얼 프레임 + 조건부 백분위 ── */
-function finishScan(){
-  clearInterval(sess.latTimer);
-  /* 초기 5문항(수렴 전)은 워밍업으로 제외, 이후 후반일수록 가중 */
-  const seq=sess.seq;
+/* ±1 적응 경로는 경계 레벨에서 L/L+1을 왕복한다. 가중 평균의 +0.5 편향만
+   내부 레벨에서 제거하고, 최저·최고 레벨은 절대 경계값 그대로 보존한다. */
+function scanLevelEstimate(seq){
   const warm=seq.length>12?5:Math.floor(seq.length*0.3);
   const used=seq.slice(warm);
   let wsum=0,w=0;
   used.forEach((s,i)=>{const wt=1+i/used.length;wsum+=s.lv*wt;w+=wt;});
-  const lv=w?wsum/w:(seq.length?seq.reduce((a,s)=>a+s.lv,0)/seq.length:3);
+  const raw=w?wsum/w:(seq.length?seq.reduce((a,s)=>a+s.lv,0)/seq.length:3);
+  const calibrated=(raw>1&&raw<9)?raw-0.5:raw;
+  return Math.round(Math.max(1,Math.min(9,calibrated))*10)/10;
+}
+function finishScan(){
+  clearInterval(sess.latTimer);
+  /* 초기 5문항(수렴 전)은 워밍업으로 제외, 이후 후반일수록 가중 */
+  const seq=sess.seq;
   const prev=state.level;
-  state.level=Math.round(lv*10)/10;
+  state.level=scanLevelEstimate(seq);
   state.lastScanLv=prev;
   state.lastScanWrong=sess.seq.filter(s=>s.outcome==='x').map(s=>WORDS[s.i][0]);
   state.coachCtx="postscan";
