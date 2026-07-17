@@ -549,6 +549,9 @@ Object.assign(I18N.en,{scanNextRequired:"Next step · Complete one recommended p
 Object.assign(I18N.ko,{savedManager:"저장한 단어 관리",savedManagerDesc:"저장한 단어를 찾아보고 정리하세요",savedSearch:"영단어 또는 뜻 검색",savedEmpty:"저장한 단어가 없어요",savedItems:"개 표시",savedDelete:"저장 취소",savedBack:"문제집으로"});
 Object.assign(I18N.th,{savedManager:"จัดการคำที่บันทึก",savedManagerDesc:"ค้นหาและจัดการคำที่บันทึกไว้",savedSearch:"ค้นหาคำอังกฤษหรือความหมาย",savedEmpty:"ยังไม่มีคำที่บันทึก",savedItems:"คำที่แสดง",savedDelete:"ยกเลิกบันทึก",savedBack:"กลับชุดคำถาม"});
 Object.assign(I18N.en,{savedManager:"Manage Saved Words",savedManagerDesc:"Find and organize your saved words",savedSearch:"Search word or meaning",savedEmpty:"No saved words yet",savedItems:"shown",savedDelete:"Unsave",savedBack:"Back to Sets"});
+Object.assign(I18N.ko,{rankCountryPick:"비교 국가",rankCountryHint:"내 설정은 바꾸지 않고 랭킹 코호트만 비교합니다.",rankMyCountry:"내 국가"});
+Object.assign(I18N.th,{rankCountryPick:"ประเทศที่เปรียบเทียบ",rankCountryHint:"เปรียบเทียบเฉพาะกลุ่มอันดับ โดยไม่เปลี่ยนการตั้งค่าของฉัน",rankMyCountry:"ประเทศของฉัน"});
+Object.assign(I18N.en,{rankCountryPick:"Compare country",rankCountryHint:"This compares the ranking cohort only and does not change your profile.",rankMyCountry:"My country"});
 function t(key){return (I18N[state.lang||"ko"]||I18N.ko)[key]||key;}
 /* 뜻 조회: 언어별 분기 (태국어 없으면 한국어 폴백) */
 function thMean(k){k=k.toLowerCase();return Object.prototype.hasOwnProperty.call(TH_MEANINGS,k)?TH_MEANINGS[k]:null;}
@@ -588,7 +591,7 @@ let state=readStoredJson("voca_v1",null);
 if(!state) state={level:null,trust:1.0,words:{},streak:0,lastDay:null,total:0,latencies:[]};
 function save(){storageSet("voca_v1",JSON.stringify(state));}
 const APP_VER="v2.3";
-const BUILD_ID="2026-07-17.7"; /* F45: 상세 튜토리얼 BGM·마스코트 안내. 내용 바뀔 때마다 이 값도 반드시 갱신 */
+const BUILD_ID="2026-07-17.8"; /* F46: 랭킹 비교 국가 코호트. 내용 바뀔 때마다 이 값도 반드시 갱신 */
 const PUBLIC_APP_URL="https://hanksleekorea-boop.github.io/vocascan-web/?build="+BUILD_ID;
 /* ── 계측: 이벤트 로그(localStorage voca_log, 최대 500건) ── */
 function evlog(ev,d){const L=readStoredJson("voca_log",runtimeLog);runtimeLog=Array.isArray(L)?L:runtimeLog;runtimeLog.push([Date.now(),ev,d===undefined?null:d]);while(runtimeLog.length>500)runtimeLog.shift();storageSet("voca_log",JSON.stringify(runtimeLog));}
@@ -1830,7 +1833,14 @@ function simCohort(myXP,seed,size){
   }
   return Math.max(1,Math.min(99,Math.round(100-below/size*100)));
 }
-function rankBoard(period,myXP,seed){
+function rankCountryCode(){
+  return state.rankCountry||state.country||({ko:'KR',th:'TH',en:'US'}[state.lang]||'ETC');
+}
+function rankCountryLabel(code){
+  const item=countries().find(c=>c[0]===code);
+  return item?item[1].replace(/^\S+\s/,''):code;
+}
+function rankBoard(period,myXP,seed,countryCode){
   /* 상위권 가상 리더보드 8명 + 내 위치 */
   const rnd=seededRand(seed);
   const NAMES={
@@ -1841,10 +1851,9 @@ function rankBoard(period,myXP,seed){
     TH:["ณัฐ","พิม","ก้อง","ฟ้า","บอส","แนน","ต้น","มิ้น","ปอ","จ๋า"],
     ETC:["Alex","Sam","Jordan","Casey","Riley","Taylor","Morgan","Jamie","Robin","Lee"]
   };
-  const langCountry={ko:'KR',th:'TH',en:'US'}[state.lang]||state.country;
   const names=(rankScope==='world')
     ?[].concat(NAMES.KR.slice(0,3),NAMES.JP.slice(0,3),NAMES.US.slice(0,3),NAMES.CN.slice(0,2),NAMES.TH.slice(0,2),NAMES.ETC.slice(0,2))
-    :(NAMES[langCountry]||NAMES.ETC);
+    :(NAMES[countryCode||rankCountryCode()]||NAMES.ETC);
   const top=[];
   let cur=myXP>0?Math.round(myXP*(1.4+rnd()*0.8)):120;
   for(let i=0;i<8;i++){
@@ -1860,17 +1869,17 @@ function rankBoard(period,myXP,seed){
 let rankPeriod='w';
 let rankScope='grade'; /* grade | age | world */
 function hashStr(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))%1000003;return h;}
-function scopeInfo(){
+function scopeInfo(countryCode=rankCountryCode()){
   const EPOCH=Date.UTC(2026,6,5), daysSince=Math.max(0,Math.floor((Date.now()-EPOCH)/DAY));
   const totalBase=157569+daysSince*300;
-  const cShare={KR:1.0,JP:0.55,US:0.7,CN:0.9,TH:0.3,ETC:0.4}[state.country]||0.5;
-  const cName=(countries().find(c=>c[0]===state.country)||[,''])[1].replace(/^\S+\s/,'');
+  const cShare={KR:1.0,JP:0.55,US:0.7,CN:0.9,TH:0.3,ETC:0.4}[countryCode]||0.5;
+  const cName=rankCountryLabel(countryCode);
   const age=state.birth?(new Date().getFullYear()-state.birth):null;
   if(rankScope==='grade')
-    return{key:'g|'+state.country+'|'+state.identity, size:Math.round(totalBase*cShare/11),
+    return{key:'g|'+countryCode+'|'+state.identity, size:Math.round(totalBase*cShare/11),
       label:(cName?cName+' · ':'')+(gradeLabel(state.identity)||t('all'))+' '+t('grp')};
   if(rankScope==='age')
-    return{key:'a|'+state.country+'|'+state.birth, size:Math.round(totalBase*cShare/60),
+    return{key:'a|'+countryCode+'|'+state.birth, size:Math.round(totalBase*cShare/60),
       label:(cName?cName+' · ':'')+(age?age+t('yearsOld'):t('sameAge'))+' '+t('grp')};
   /* world: 전 국가·전 학년 */
   return{key:'w|all', size:totalBase, label:t('worldAll')};
@@ -1879,16 +1888,25 @@ function renderRank(){
   const periods=[['d',t('today')],['w',t('week')],['m',t('month')]];
   const scopes=[['grade',t('grade')],['age',t('age')],['world',t('world')]];
   const myXP=curXP(rankPeriod);
-  const si=scopeInfo();
+  const comparisonCountry=rankCountryCode();
+  const si=scopeInfo(comparisonCountry);
   const seed=hashStr(si.key)+({'d':1,'w':2,'m':3}[rankPeriod])*104729+(new Date().getMonth()+1);
   const cohortSize=si.size;
   const topPct=simCohort(myXP, seed, Math.min(cohortSize,2000));
-  const board=rankBoard(rankPeriod, myXP, seed+13);
+  const board=rankBoard(rankPeriod, myXP, seed+13, comparisonCountry);
   const idn=si.label;
 
   const scopeTabs='<div style="display:flex;gap:8px;margin-bottom:8px">'+
     scopes.map(([k,l])=>'<button class="btn'+(rankScope===k?' accent':'')+'" data-rs="'+k+'" '+
     'style="flex:1;padding:8px;font-size:13px">'+l+'</button>').join('')+'</div>';
+  const countryTabs=rankScope==='world'
+    ?'<div class="footnote" style="margin:0 0 12px">'+t('worldAll')+'</div>'
+    :'<div class="sect" style="margin-top:2px">'+t('rankCountryPick')+'</div>'+
+      '<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-bottom:7px">'+
+      countries().map(([code,label])=>'<button class="btn'+(comparisonCountry===code?' accent':'')+'" data-rc="'+code+'" '+
+        'style="padding:8px 4px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+label+'">'+label+
+        (code===state.country?' <span style="font-size:9px;opacity:.78">· '+t('rankMyCountry')+'</span>':'')+'</button>').join('')+'</div>'+
+      '<div class="footnote" style="margin:0 0 12px">'+t('rankCountryHint')+'</div>';
   const tabsHtml='<div style="display:flex;gap:8px;margin-bottom:12px">'+
     periods.map(([k,l])=>'<button class="btn'+(rankPeriod===k?' accent':'')+'" data-rp="'+k+'" '+
     'style="flex:1;padding:8px;font-size:13px">'+l+'</button>').join('')+'</div>';
@@ -1944,6 +1962,7 @@ function renderRank(){
 
   $("#rankBox").innerHTML=
     '<div class="sect">'+t("rankScope")+'</div>'+scopeTabs+
+    countryTabs+
     '<div class="sect">'+t('periodPrefix')+' '+({'d':t('pToday'),'w':t('pWeek'),'m':t('pMonth')}[rankPeriod])+'</div>'+tabsHtml+
     grade+
     '<div class="sect">'+t("leaderboard")+'</div>'+rows+
@@ -1951,6 +1970,7 @@ function renderRank(){
 
   $("#rankBox").querySelectorAll("[data-rp]").forEach(b=>b.onclick=()=>{rankPeriod=b.dataset.rp;renderRank();});
   $("#rankBox").querySelectorAll("[data-rs]").forEach(b=>b.onclick=()=>{rankScope=b.dataset.rs;renderRank();});
+  $("#rankBox").querySelectorAll("[data-rc]").forEach(b=>b.onclick=()=>{state.rankCountry=b.dataset.rc;save();renderRank();});
 }
 
 function renderStats(){
@@ -2123,7 +2143,10 @@ function renderIdentity(){
   $("#btnIdentityDone").onclick=()=>{
     if(!(draft.country&&draft.birth&&draft.identity))return;
     const first=state.level===null;
+    const previousCountry=state.country;
     state.country=draft.country; state.birth=draft.birth; state.identity=draft.identity;
+    /* 비교 대상을 직접 바꾸지 않았다면, 프로필 국가 변경에 기본 코호트도 함께 맞춘다. */
+    if(!state.rankCountry||state.rankCountry===previousCountry)state.rankCountry=draft.country;
     save();
     if(first)startSession("scan",[]);else show("home");
   };
