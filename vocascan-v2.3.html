@@ -588,7 +588,8 @@ let state=readStoredJson("voca_v1",null);
 if(!state) state={level:null,trust:1.0,words:{},streak:0,lastDay:null,total:0,latencies:[]};
 function save(){storageSet("voca_v1",JSON.stringify(state));}
 const APP_VER="v2.3";
-const BUILD_ID="2026-07-17.5"; /* F43: 저장한 단어 전용 관리 화면. 내용 바뀔 때마다 이 값도 반드시 갱신 */
+const BUILD_ID="2026-07-17.6"; /* F44: 공유 문구에 현재 공개 앱 URL 포함. 내용 바뀔 때마다 이 값도 반드시 갱신 */
+const PUBLIC_APP_URL="https://hanksleekorea-boop.github.io/vocascan-web/?build="+BUILD_ID;
 /* ── 계측: 이벤트 로그(localStorage voca_log, 최대 500건) ── */
 function evlog(ev,d){const L=readStoredJson("voca_log",runtimeLog);runtimeLog=Array.isArray(L)?L:runtimeLog;runtimeLog.push([Date.now(),ev,d===undefined?null:d]);while(runtimeLog.length>500)runtimeLog.shift();storageSet("voca_log",JSON.stringify(runtimeLog));}
 window.vocaLog=function(){const L=readStoredJson("voca_log",runtimeLog);runtimeLog=Array.isArray(L)?L:runtimeLog;return runtimeLog;};
@@ -1803,10 +1804,11 @@ function renderHome(){
     const shText=(state.level)
       ?t('shareResultText').replace('{grade}',gradeLabel(state.identity)).replace('{top}',(100-pct(state.level)))
       :t('shareInviteText');
+    const shareText=shText+'\n'+PUBLIC_APP_URL;
     if(navigator.share){
-      navigator.share({title:shTitle,text:shText}).catch(()=>{});
+      navigator.share({title:shTitle,text:shareText,url:PUBLIC_APP_URL}).catch(()=>{});
     }else{
-      copyText(shTitle+'\n'+shText,()=>toast(t('shareCopied')));
+      copyText(shTitle+'\n'+shareText,()=>toast(t('shareCopied')));
     }
   };
 }
