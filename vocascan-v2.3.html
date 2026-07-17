@@ -83,6 +83,18 @@
   .body{flex:1;overflow:hidden;position:relative;display:flex;flex-direction:column;padding:6px 16px 12px}
   .scr{display:none;flex:1;flex-direction:column;min-height:0}
   .scr.active{display:flex}
+  .saved-toolbar{display:flex;gap:8px;align-items:center;margin:4px 0 12px}
+  .saved-search{flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:11px;color:var(--txt);padding:11px 12px;font:inherit;font-size:13px;outline:none}
+  .saved-search:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(255,210,74,.12)}
+  .saved-summary{font-size:12px;color:var(--mute);margin:2px 0 8px}
+  .saved-row{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:11px 12px;margin:7px 0}
+  .saved-row-main{flex:1;min-width:0}
+  .saved-word{font-size:16px;font-weight:800;letter-spacing:.2px;word-break:break-word}
+  .saved-meaning{font-size:12px;color:var(--mute);margin-top:3px;word-break:keep-all}
+  .saved-level{display:inline-block;margin-left:6px;color:var(--accent);font-size:10px;font-weight:800;vertical-align:2px}
+  .saved-remove{flex:0 0 auto;background:none;border:1px solid var(--line);color:var(--mute);border-radius:9px;padding:7px 9px;font:inherit;font-size:11px;font-weight:700;cursor:pointer}
+  .saved-remove:hover{border-color:#ef7373;color:#ff9a9a}
+  .saved-empty{padding:34px 12px;text-align:center;color:var(--mute);font-size:13px}
 
   /* ── 인덱스카드 (시그니처) ── */
   .cardwrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
@@ -445,6 +457,17 @@
     </div>
 
     <!-- 통계 -->
+    <div class="scr" id="scr-saved" data-testid="screen-saved">
+      <div class="home">
+        <div style="display:flex;gap:6px;margin-bottom:10px" id="langToggleSaved">
+          <button class="langbtn" data-lang="ko">🇰🇷 한국어</button>
+          <button class="langbtn" data-lang="th">🇹🇭 ไทย</button>
+          <button class="langbtn" data-lang="en">🇬🇧 EN</button>
+        </div>
+        <div id="savedBox"></div>
+      </div>
+    </div>
+
     <div class="scr" id="scr-stats" data-testid="screen-stats">
       <!-- F24: 모든 페이지에서 언어전환 가능하게 -->
       <div style="display:flex;gap:6px;margin-bottom:10px" id="langToggleStats">
@@ -523,6 +546,9 @@ Object.assign(I18N.en,{storageUnavailable:"This environment can keep your learni
 Object.assign(I18N.ko,{scanNextRequired:"다음 단계 · 아래 추천 프로그램 1개를 끝까지 완료하면 진단이 끝납니다."});
 Object.assign(I18N.th,{scanNextRequired:"ขั้นตอนถัดไป · ทำโปรแกรมแนะนำด้านล่างให้จบ 1 โปรแกรมเพื่อเสร็จสิ้นการวินิจฉัย"});
 Object.assign(I18N.en,{scanNextRequired:"Next step · Complete one recommended program below to finish your diagnosis."});
+Object.assign(I18N.ko,{savedManager:"저장한 단어 관리",savedManagerDesc:"저장한 단어를 찾아보고 정리하세요",savedSearch:"영단어 또는 뜻 검색",savedEmpty:"저장한 단어가 없어요",savedItems:"개 표시",savedDelete:"저장 취소",savedBack:"문제집으로"});
+Object.assign(I18N.th,{savedManager:"จัดการคำที่บันทึก",savedManagerDesc:"ค้นหาและจัดการคำที่บันทึกไว้",savedSearch:"ค้นหาคำอังกฤษหรือความหมาย",savedEmpty:"ยังไม่มีคำที่บันทึก",savedItems:"คำที่แสดง",savedDelete:"ยกเลิกบันทึก",savedBack:"กลับชุดคำถาม"});
+Object.assign(I18N.en,{savedManager:"Manage Saved Words",savedManagerDesc:"Find and organize your saved words",savedSearch:"Search word or meaning",savedEmpty:"No saved words yet",savedItems:"shown",savedDelete:"Unsave",savedBack:"Back to Sets"});
 function t(key){return (I18N[state.lang||"ko"]||I18N.ko)[key]||key;}
 /* 뜻 조회: 언어별 분기 (태국어 없으면 한국어 폴백) */
 function thMean(k){k=k.toLowerCase();return Object.prototype.hasOwnProperty.call(TH_MEANINGS,k)?TH_MEANINGS[k]:null;}
@@ -562,7 +588,7 @@ let state=readStoredJson("voca_v1",null);
 if(!state) state={level:null,trust:1.0,words:{},streak:0,lastDay:null,total:0,latencies:[]};
 function save(){storageSet("voca_v1",JSON.stringify(state));}
 const APP_VER="v2.3";
-const BUILD_ID="2026-07-17.4"; /* F42: CEFR 앵커 재배치와 적응형 스캔 수렴 보정. 내용 바뀔 때마다 이 값도 반드시 갱신 */
+const BUILD_ID="2026-07-17.5"; /* F43: 저장한 단어 전용 관리 화면. 내용 바뀔 때마다 이 값도 반드시 갱신 */
 /* ── 계측: 이벤트 로그(localStorage voca_log, 최대 500건) ── */
 function evlog(ev,d){const L=readStoredJson("voca_log",runtimeLog);runtimeLog=Array.isArray(L)?L:runtimeLog;runtimeLog.push([Date.now(),ev,d===undefined?null:d]);while(runtimeLog.length>500)runtimeLog.shift();storageSet("voca_log",JSON.stringify(runtimeLog));}
 window.vocaLog=function(){const L=readStoredJson("voca_log",runtimeLog);runtimeLog=Array.isArray(L)?L:runtimeLog;return runtimeLog;};
@@ -838,6 +864,7 @@ function show(id){
   if(id==="home")renderHome();
   if(id==="stats")renderStats();
   if(id==="rank")renderRank();
+  if(id==="saved")renderSavedWords();
   if(id==="home")mascotGreet();
   $("#streakLbl").innerHTML=(state.streak>0?'<span class="flamepulse">🔥</span> '+state.streak+({ko:"일",th:"",en:"d"}[state.lang]||""):"")+(curXP('d')>0?"  ⚡"+curXP('d'):"");
 }
@@ -1611,6 +1638,40 @@ function buildPacks(){
   ];
   return packs;
 }
+/* F43: 저장 키를 현재 공통 WORDS 풀에 안전하게 연결한다. 저장소에 남은 미지 키는 보존하고 화면에는 노출하지 않는다. */
+function savedWordEntries(query){
+  const needle=String(query||"").trim().toLocaleLowerCase();
+  return Object.keys(state.savedWords||{}).map(key=>{
+    const i=WORD_INDEX_BY_KEY.get(key);
+    if(i===undefined)return null;
+    const w=WORDS[i];
+    return {key:key,i:i,word:w[0],mean:meaning(i),lv:w[2]};
+  }).filter(Boolean).filter(item=>!needle||item.word.toLocaleLowerCase().includes(needle)||String(item.mean).toLocaleLowerCase().includes(needle))
+    .sort((a,b)=>a.lv-b.lv||a.word.localeCompare(b.word));
+}
+function savedHtml(value){return String(value).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));}
+function renderSavedWords(query){
+  const raw=String(query||"");
+  const all=savedWordEntries("");
+  const rows=savedWordEntries(raw);
+  const box=$("#savedBox");if(!box)return;
+  const rowHtml=rows.length?rows.map(item=>
+    '<div class="saved-row"><div class="saved-row-main"><div class="saved-word">'+savedHtml(item.word)+'<span class="saved-level">LV'+item.lv+'</span></div><div class="saved-meaning">'+savedHtml(item.mean)+'</div></div>'+
+    '<button class="saved-remove" type="button" data-saved-key="'+savedHtml(item.key)+'">'+t("savedDelete")+'</button></div>').join(""):
+    '<div class="saved-empty">'+t("savedEmpty")+'</div>';
+  box.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 8px"><div><div class="sect" style="margin:0">⭐ '+t("savedManager")+'</div><div style="font-size:12px;color:var(--mute);margin-top:3px">'+t("savedManagerDesc")+'</div></div><button id="btnSavedBack" data-testid="btn-saved-back" class="saved-remove" type="button">'+t("savedBack")+'</button></div>'+
+    '<div class="saved-toolbar"><input id="savedSearch" data-testid="input-saved-search" class="saved-search" type="search" autocomplete="off" placeholder="'+savedHtml(t("savedSearch"))+'"></div>'+
+    '<div class="saved-summary">'+rows.length+' / '+all.length+' '+t("savedItems")+'</div><div id="savedWordRows" data-testid="saved-word-rows">'+rowHtml+'</div>';
+  const input=$("#savedSearch");input.value=raw;
+  input.oninput=e=>renderSavedWords(e.target.value);
+  $("#btnSavedBack").onclick=()=>{SFX.tap();show("home");};
+  box.querySelectorAll("[data-saved-key]").forEach(button=>button.onclick=()=>{
+    const key=button.dataset.savedKey;
+    if(!Object.prototype.hasOwnProperty.call(state.savedWords||{},key))return;
+    delete state.savedWords[key];
+    save();SFX.tap();renderSavedWords(raw);
+  });
+}
 function renderHome(){
   const ps=poolStats();
   const est=state.level?Math.round(state.level/9*WORDS.length/100)*100:0;
@@ -1667,6 +1728,9 @@ function renderHome(){
       '<div class="pc">'+p.cap+(n?' · '+t('secAbout')+' '+sec+t('secUnit'):'')+'</div></div>'+
       '<div class="go">'+(n?t('start2'):t('empty'))+'</div></div>';
   }).join("");
+  const savedCount=savedWordEntries("").length;
+  $("#packList").insertAdjacentHTML('beforeend','<div style="text-align:center;margin:12px 0 4px"><button id="btnSavedManager" data-testid="btn-open-saved-manager" style="background:none;border:1px solid var(--accent);color:var(--accent);border-radius:12px;padding:10px 16px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">⭐ '+t("savedManager")+' · '+savedCount+t("cnt")+'</button></div>');
+  const savedManagerEl=$("#btnSavedManager");if(savedManagerEl)savedManagerEl.onclick=()=>{SFX.tap();show("saved");};
   const promoEl=$("#promoPack");
   if(promoEl)promoEl.onclick=startPromo;
   const coEl=$("#coachCard");
@@ -2122,6 +2186,7 @@ function applyLang(){
 document.querySelectorAll(".langbtn").forEach(b=>b.onclick=()=>{
   state.lang=b.dataset.lang;save();applyLang();
   const scr=document.querySelector(".scr.active");if(scr&&scr.id==="scr-home")renderHome();
+  if(scr&&scr.id==="scr-saved")renderSavedWords();
 });
 /* F24: 카드 세션 중 언어 순환버튼(ko→th→en→ko) — renderCurrentCard()는 호출 안 함(반응시간 타이머·카드 상태 보존) */
 const LANG_CYCLE=["ko","th","en"];
