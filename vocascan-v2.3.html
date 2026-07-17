@@ -588,7 +588,7 @@ let state=readStoredJson("voca_v1",null);
 if(!state) state={level:null,trust:1.0,words:{},streak:0,lastDay:null,total:0,latencies:[]};
 function save(){storageSet("voca_v1",JSON.stringify(state));}
 const APP_VER="v2.3";
-const BUILD_ID="2026-07-17.6"; /* F44: 공유 문구에 현재 공개 앱 URL 포함. 내용 바뀔 때마다 이 값도 반드시 갱신 */
+const BUILD_ID="2026-07-17.7"; /* F45: 상세 튜토리얼 BGM·마스코트 안내. 내용 바뀔 때마다 이 값도 반드시 갱신 */
 const PUBLIC_APP_URL="https://hanksleekorea-boop.github.io/vocascan-web/?build="+BUILD_ID;
 /* ── 계측: 이벤트 로그(localStorage voca_log, 최대 500건) ── */
 function evlog(ev,d){const L=readStoredJson("voca_log",runtimeLog);runtimeLog=Array.isArray(L)?L:runtimeLog;runtimeLog.push([Date.now(),ev,d===undefined?null:d]);while(runtimeLog.length>500)runtimeLog.shift();storageSet("voca_log",JSON.stringify(runtimeLog));}
@@ -2189,6 +2189,7 @@ document.querySelectorAll(".langbtn").forEach(b=>b.onclick=()=>{
   state.lang=b.dataset.lang;save();applyLang();
   const scr=document.querySelector(".scr.active");if(scr&&scr.id==="scr-home")renderHome();
   if(scr&&scr.id==="scr-saved")renderSavedWords();
+  if(scr&&scr.id==="scr-tutorial")renderTutorial();
 });
 /* F24: 카드 세션 중 언어 순환버튼(ko→th→en→ko) — renderCurrentCard()는 호출 안 함(반응시간 타이머·카드 상태 보존) */
 const LANG_CYCLE=["ko","th","en"];
@@ -2287,7 +2288,9 @@ function renderTutorial(){
         ["🪜","레벨 ±1 학습법","코치가 정답률로 자동 배분합니다.<br>85% 이상 → 위 레벨 돌파 도전,<br>50% 미만 → 아래 레벨 기초 다지기."],
         ["🏆","랭킹·티어·XP","학습할 때마다 XP가 쌓이고<br>같은 국가·학년 그룹에서 순위를 겨룹니다.<br>상위 %에 따라 BRONZE→LEGEND 티어."],
         ["◀","전단계로 되돌아가기","O/X를 잘못 눌렀다면 카드 좌하단 ↺ 버튼으로 직전 답변을 취소할 수 있어요.<br>학습기록·XP까지 정확히 원상복구됩니다."],
-        ["⭐","단어 저장하기","헷갈리는 단어는 카드 좌상단 ☆을 눌러 저장하세요.<br>홈 화면 '저장한 단어' 팩에서 모아서 다시 볼 수 있어요."]],
+        ["⭐","단어 저장하기","헷갈리는 단어는 카드 좌상단 ☆을 눌러 저장하세요.<br>홈 화면 '저장한 단어' 팩에서 모아서 다시 볼 수 있어요."],
+        ["🎵","배경음악 켜기","화면 위쪽 🎵 버튼을 누르면 배경음악이 시작되고 🎶로 바뀝니다.<br>원할 때 다시 눌러 끌 수 있어요. 브라우저 정책상 첫 탭 뒤에 재생됩니다."],
+        ["🤖","도우미 마스코트","홈·통계 화면의 🤖가 짧은 안내와 연속 학습 응원을 전합니다.<br>온보딩·세션·상세 튜토리얼 중에는 집중을 위해 숨겨집니다."]],
     th:[["⚡","ทำไมความเร็วคือความสามารถ","คำที่รู้จริงจะกด O ได้ใน 0.5 วินาที<br>ความลังเลคือสัญญาณของความรู้ที่ใช้ไม่ได้จริง —<br>VocaScan จึงวัดความเร็วในการตอบด้วย"],
         ["🎯","สแกนปรับระดับ 25 ข้อ","ตอบถูกขึ้นระดับ ตอบผิดลงระดับทันที<br>25 ข้อก็หาตำแหน่งใน 9 ระดับได้<br>5 ข้อแรกเป็นวอร์มอัพ ไม่นับคะแนน"],
         ["🧪","การยืนยัน 4 ตัวเลือก","กด O แล้วบางครั้งต้องเลือกความหมาย<br>เพื่อยืนยันว่ารู้จริง แต่ละคำมีค่าความมั่นใจ K —<br>O เร็ว 0.95, O ช้า 0.6, X ทันที 0.05"],
@@ -2295,7 +2298,9 @@ function renderTutorial(){
         ["🪜","วิธีเรียนระดับ ±1","โค้ชจัดสรรอัตโนมัติตามความแม่นยำ<br>เกิน 85% → ท้าทายระดับบน<br>ต่ำกว่า 50% → เสริมพื้นฐานระดับล่าง"],
         ["🏆","อันดับ·ระดับ·XP","ได้ XP ทุกครั้งที่เรียน<br>แข่งในกลุ่มประเทศ·ระดับชั้นเดียวกัน<br>อันดับต้น % กำหนดระดับ BRONZE→LEGEND"],
         ["◀","ย้อนกลับขั้นตอนก่อนหน้า","ถ้ากด O/X ผิด แตะปุ่ม ↺ มุมล่างซ้ายของการ์ดเพื่อยกเลิกคำตอบล่าสุด<br>ประวัติการเรียน·XP จะคืนค่าให้ถูกต้อง"],
-        ["⭐","บันทึกคำศัพท์","คำไหนที่สับสน แตะ ☆ มุมบนซ้ายของการ์ดเพื่อบันทึก<br>ดูรวมได้ในชุด 'คำที่บันทึกไว้' หน้าหลัก"]],
+        ["⭐","บันทึกคำศัพท์","คำไหนที่สับสน แตะ ☆ มุมบนซ้ายของการ์ดเพื่อบันทึก<br>ดูรวมได้ในชุด 'คำที่บันทึกไว้' หน้าหลัก"],
+        ["🎵","เปิดเพลงพื้นหลัง","แตะปุ่ม 🎵 ด้านบนเพื่อเริ่มเพลงพื้นหลัง ปุ่มจะเปลี่ยนเป็น 🎶<br>แตะอีกครั้งเพื่อปิด เบราว์เซอร์จะเล่นหลังการแตะครั้งแรก."],
+        ["🤖","มาสคอตผู้ช่วย","🤖 บนหน้าชุดคำถาม·สถิติจะให้คำแนะนำสั้นๆ และให้กำลังใจต่อเนื่อง<br>จะซ่อนระหว่างเริ่มต้น เซสชัน และบทแนะนำละเอียดเพื่อไม่รบกวนสมาธิ"]],
     en:[["⚡","Why speed = skill","Words you truly know get an O within 0.5s.<br>Hesitation signals knowledge you can't use in a test —<br>so VocaScan measures reaction speed too."],
         ["🎯","25-question adaptive scan","Right moves you up a level, wrong moves down.<br>25 questions converge on your position across 9 levels.<br>The first 5 are warm-up and excluded."],
         ["🧪","The 4-choice probe","Even after O, sometimes you must pick the meaning.<br>Each word gets a confidence score K —<br>fast O 0.95, slow O 0.6, instant X 0.05."],
@@ -2303,7 +2308,9 @@ function renderTutorial(){
         ["🪜","The ±1 level method","The coach allocates by your accuracy.<br>Above 85% → challenge the level above,<br>below 50% → build basics one level down."],
         ["🏆","Rank, tiers, XP","Earn XP every session and compete<br>within your country·grade group.<br>Your top % sets your tier: BRONZE→LEGEND."],
         ["◀","Undo the last answer","Tapped O/X by mistake? Tap the ↺ button at the card's bottom-left to undo it.<br>Your progress and XP are restored exactly."],
-        ["⭐","Save a word","Tap the ☆ at the card's top-left to save a tricky word.<br>Find them all later in the 'Saved Words' pack on Home."]]
+        ["⭐","Save a word","Tap the ☆ at the card's top-left to save a tricky word.<br>Find them all later in the 'Saved Words' pack on Home."],
+        ["🎵","Turn on background music","Tap the 🎵 button at the top to start music; it changes to 🎶.<br>Tap again to turn it off. Browser rules start audio after your first tap."],
+        ["🤖","Your guide mascot","🤖 on Home and Stats gives brief guidance and streak encouragement.<br>It stays hidden during onboarding, sessions, and this tutorial so you can focus."]]
   };
   const slides=D[state.lang]||D.ko;
   if(_tutLang!==state.lang){ /* 슬라이드 DOM은 언어 변경 시에만 재구축 — 이동은 클래스 토글로 애니메이션 */
@@ -2328,15 +2335,16 @@ function openTutorial(i,ret){
   if(tutReturn==="tutorial")tutReturn="home";
   renderTutorial();show("tutorial");
 }
+function tutorialLastIndex(){return Math.max(0,$$("#tutWrap .obd-slide").length-1);}
 $("#tutClose").onclick=()=>{SFX.tap();show(tutReturn);};
 $("#tutPrev").onclick=()=>{SFX.tap();if(tutIdx>0){tutIdx--;renderTutorial();}};
-$("#tutNext").onclick=()=>{SFX.tap();if(tutIdx<7){tutIdx++;renderTutorial();}else show(tutReturn);}; /* F20: 슬라이드 6→8장 확장(F12·F19 추가)으로 상한 5→7 */
+$("#tutNext").onclick=()=>{SFX.tap();if(tutIdx<tutorialLastIndex()){tutIdx++;renderTutorial();}else show(tutReturn);}; /* F45: 마지막 장은 실제 슬라이드 수로 계산 */
 $("#btnTut").onclick=()=>{SFX.tap();
   const cur=document.querySelector(".scr.active");
   if(cur&&(cur.id==="scr-session"||cur.id==="scr-onboard"))return; /* 세션·온보딩 중엔 비활성 */
   openTutorial(0);};
 bindSwipe("#tutWrap",dir=>{
-  if(dir<0&&tutIdx<7){tutIdx++;renderTutorial();} /* F20: 상한 5→7 */
+  if(dir<0&&tutIdx<tutorialLastIndex()){tutIdx++;renderTutorial();}
   else if(dir>0&&tutIdx>0){tutIdx--;renderTutorial();}
 });
 /* ===== PWA 설치 배너 ===== */
