@@ -601,7 +601,7 @@ let state=readStoredJson("voca_v1",null);
 if(!state) state={level:null,trust:1.0,words:{},streak:0,lastDay:null,total:0,latencies:[]};
 function save(){storageSet("voca_v1",JSON.stringify(state));}
 const APP_VER="v2.3";
-const BUILD_ID="2026-07-18.2"; /* F69-F88: 즉시 실행 가능 20개 항목 일괄 완결. 내용 바뀔 때마다 이 값도 반드시 갱신 */
+const BUILD_ID="2026-07-18.3"; /* F89-F108: 즉시 실행 가능 20개 항목 일괄 완결. 내용 바뀔 때마다 이 값도 반드시 갱신 */
 const PUBLIC_APP_URL="https://hanksleekorea-boop.github.io/vocascan-web/?build="+BUILD_ID;
 /* ── 계측: 이벤트 로그(localStorage voca_log, 최대 500건) ── */
 function evlog(ev,d){const L=readStoredJson("voca_log",runtimeLog);runtimeLog=Array.isArray(L)?L:runtimeLog;runtimeLog.push([Date.now(),ev,d===undefined?null:d]);while(runtimeLog.length>500)runtimeLog.shift();storageSet("voca_log",JSON.stringify(runtimeLog));}
@@ -1762,6 +1762,9 @@ function renderHome(){
   const savedCount=savedWordEntries("").length;
   $("#packList").insertAdjacentHTML('beforeend','<div style="text-align:center;margin:12px 0 4px"><button id="btnSavedManager" data-testid="btn-open-saved-manager" style="background:none;border:1px solid var(--accent);color:var(--accent);border-radius:12px;padding:10px 16px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">⭐ '+t("savedManager")+' · '+savedCount+t("cnt")+'</button></div>');
   const savedManagerEl=$("#btnSavedManager");if(savedManagerEl)savedManagerEl.onclick=()=>{SFX.tap();show("saved");};
+  const pwaLabel={ko:"홈 화면에 추가",th:"เพิ่มไปหน้าจอหลัก",en:"Add to Home Screen"}[state.lang]||"Add to Home Screen";
+  $("#packList").insertAdjacentHTML('beforeend','<div style="text-align:center;margin:8px 0 4px"><button id="btnPwaHelp" data-testid="btn-add-home-screen" style="background:none;border:1px solid var(--line);color:var(--mute);border-radius:12px;padding:9px 14px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">📲 '+pwaLabel+'</button></div>');
+  const pwaHelpEl=$("#btnPwaHelp");if(pwaHelpEl)pwaHelpEl.onclick=()=>{SFX.tap();window.dispatchEvent(new CustomEvent("vocascan:pwahelp"));};
   const promoEl=$("#promoPack");
   if(promoEl)promoEl.onclick=startPromo;
   const coEl=$("#coachCard");
@@ -2442,9 +2445,9 @@ bindSwipe("#tutWrap",dir=>{
   let deferredPrompt=null;
   let shownMode="";
   const PW={
-    ko:{title:"VocaScan 앱으로 설치",descA:"홈 화면에 추가하면 더 빠르게 열 수 있어요",install:"설치",later:"나중에",descI:'공유 <span id="pwaShareIcon"></span> 버튼 → <b>홈 화면에 추가</b>를 눌러주세요',descIOther:"Safari에서 이 페이지를 연 뒤 홈 화면에 추가해 주세요"},
-    th:{title:"ติดตั้งเป็นแอป VocaScan",descA:"เพิ่มไปหน้าจอหลักเพื่อเปิดเร็วขึ้น",install:"ติดตั้ง",later:"ไว้ทีหลัง",descI:'ปุ่มแชร์ <span id="pwaShareIcon"></span> → กด <b>เพิ่มไปยังหน้าจอหลัก</b>',descIOther:"เปิดหน้านี้ใน Safari แล้วเพิ่มไปยังหน้าจอโฮม"},
-    en:{title:"Install VocaScan App",descA:"Add to home screen for faster access",install:"Install",later:"Later",descI:'Tap Share <span id="pwaShareIcon"></span> → <b>Add to Home Screen</b>',descIOther:"Open this page in Safari, then add it to your home screen"}
+    ko:{title:"VocaScan 앱으로 설치",descA:"홈 화면에 추가하면 더 빠르게 열 수 있어요",install:"설치",later:"나중에",descI:'공유 <span id="pwaShareIcon"></span> 버튼 → <b>홈 화면에 추가</b>를 눌러주세요',descIOther:"Safari에서 이 페이지를 연 뒤 홈 화면에 추가해 주세요",guide:"브라우저 메뉴에서 ‘앱 설치’ 또는 ‘홈 화면에 추가’를 선택해 주세요"},
+    th:{title:"ติดตั้งเป็นแอป VocaScan",descA:"เพิ่มไปหน้าจอหลักเพื่อเปิดเร็วขึ้น",install:"ติดตั้ง",later:"ไว้ทีหลัง",descI:'ปุ่มแชร์ <span id="pwaShareIcon"></span> → กด <b>เพิ่มไปยังหน้าจอหลัก</b>',descIOther:"เปิดหน้านี้ใน Safari แล้วเพิ่มไปยังหน้าจอโฮม",guide:"เลือก ‘ติดตั้งแอป’ หรือ ‘เพิ่มไปหน้าจอหลัก’ จากเมนูเบราว์เซอร์"},
+    en:{title:"Install VocaScan App",descA:"Add to home screen for faster access",install:"Install",later:"Later",descI:'Tap Share <span id="pwaShareIcon"></span> → <b>Add to Home Screen</b>',descIOther:"Open this page in Safari, then add it to your home screen",guide:"Choose ‘Install app’ or ‘Add to Home Screen’ from your browser menu"}
   };
   const pw=()=>PW[state.lang]||PW.ko;
   function readPref(){
@@ -2477,8 +2480,8 @@ bindSwipe("#tutWrap",dir=>{
     banner.setAttribute("aria-label",pw().title);
     requestAnimationFrame(()=>banner.classList.add("show"));
   }
-  function renderInstallPrompt(){
-    if(!deferredPrompt||isDismissed())return;
+  function renderInstallPrompt(force=false){
+    if(!deferredPrompt||(!force&&isDismissed()))return;
     banner.classList.remove("ios");
     banner.innerHTML=
       '<div class="pwaIcon" aria-hidden="true">V</div>'+
@@ -2497,8 +2500,8 @@ bindSwipe("#tutWrap",dir=>{
     document.getElementById("pwaCloseBtn").onclick=snooze;
     show("install");
   }
-  function renderIOSGuide(){
-    if(isDismissed())return;
+  function renderIOSGuide(force=false){
+    if(!force&&isDismissed())return;
     banner.classList.add("ios");
     const desc=isIOSSafari?pw().descI:pw().descIOther;
     banner.innerHTML=
@@ -2508,6 +2511,11 @@ bindSwipe("#tutWrap",dir=>{
     document.getElementById("pwaCloseBtn").onclick=snooze;
     show("ios");
   }
+  function renderBrowserGuide(){
+    banner.innerHTML='<div class="pwaIcon" aria-hidden="true">V</div><div class="pwaBody"><div class="pwaTitle">'+pw().title+'</div><div class="pwaDesc">'+pw().guide+'</div></div><div class="pwaActions"><button class="pwaCloseBtn" id="pwaCloseBtn" type="button" aria-label="'+pw().later+'">×</button></div>';
+    document.getElementById("pwaCloseBtn").onclick=hide;
+    show("guide");
+  }
   if(isStandalone){markInstalled();return;}
   if(isDismissed())return;
   window.addEventListener("beforeinstallprompt",(e)=>{e.preventDefault();deferredPrompt=e;renderInstallPrompt();});
@@ -2515,6 +2523,13 @@ bindSwipe("#tutWrap",dir=>{
   window.addEventListener("vocascan:langchange",()=>{
     if(shownMode==="install")renderInstallPrompt();
     if(shownMode==="ios")renderIOSGuide();
+    if(shownMode==="guide")renderBrowserGuide();
+  });
+  window.addEventListener("vocascan:pwahelp",()=>{
+    if(isStandalone){toast(pw().title);return;}
+    if(deferredPrompt){renderInstallPrompt(true);return;}
+    if(isIOS){renderIOSGuide(true);return;}
+    renderBrowserGuide();
   });
   /* iOS는 install prompt가 없으므로, 첫 화면을 가리지 않도록 잠시 뒤 안내 */
   if(isIOS)setTimeout(()=>{if(!isDismissed())renderIOSGuide();},3000);
