@@ -31,6 +31,7 @@
   @keyframes partshake{0%{transform:translateX(0);opacity:1}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}100%{transform:translateY(30px) translateX(var(--dx)) scale(0);opacity:0}}
   @keyframes combopop{0%{transform:translateX(-50%) scale(0) translateY(0)}60%{transform:translateX(-50%) scale(1.15) translateY(-4px)}100%{transform:translateX(-50%) scale(1) translateY(0)}}
   @keyframes combofade{to{opacity:0;transform:translateX(-50%) scale(0.8) translateY(-10px)}}
+  @media (prefers-reduced-motion:reduce){.result-confetti{display:none!important}}
   @keyframes heroIn{0%{opacity:0;transform:translateY(14px)}100%{opacity:1;transform:translateY(0)}}
   @keyframes iconBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
   @keyframes probePop{0%{transform:scale(0.85);opacity:0}100%{transform:scale(1);opacity:1}}
@@ -250,6 +251,10 @@
   .cardbtn.pos-tl{top:10px;left:12px}
   .cardbtn.saved{background:var(--grad-gold);color:#2a2005;border-color:transparent;animation:pop .4s cubic-bezier(.34,1.56,.64,1) both}
   .ttsbtn-s{background:none;border:none;font-size:14px;cursor:pointer;padding:0 4px;vertical-align:middle;line-height:1}
+  /* F50/F62: 세션 도구 버튼은 같은 크기·포커스 표면을 공유해 작은 화면에서도 조작 규칙이 일정하다. */
+  .session-tool{min-width:38px;min-height:34px;display:inline-flex;align-items:center;justify-content:center}
+  .session-tool:focus-visible,.cardbtn:focus-visible,.ttsbtn:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+  .result-confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none}
   .ipa{position:relative;z-index:2;font-size:14px;color:#7a8aa8;letter-spacing:.5px;margin-top:6px;font-family:Georgia,serif}
   #btnTut{background:var(--panel);border:1px solid var(--line);color:var(--mute);border-radius:50%;width:26px;height:26px;font-size:13px;cursor:pointer;line-height:1;flex-shrink:0}
   .obd-wrap{touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:grab}
@@ -394,11 +399,11 @@
     <!-- 카드 세션 (스캔/학습 공용) -->
     <div class="scr" id="scr-session" data-testid="screen-session">
       <div style="display:flex;align-items:center;gap:10px;padding:2px 0 6px">
-        <button id="btnQuit" data-testid="btn-quit-session" style="background:var(--panel);border:1px solid var(--line);color:var(--mute);border-radius:10px;padding:6px 12px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer">✕ 나가기</button>
-        <button id="btnMute" data-testid="btn-mute" style="background:var(--panel);border:1px solid var(--line);color:var(--mute);border-radius:10px;padding:6px 10px;font-family:inherit;font-size:14px;cursor:pointer">🔊</button>
-        <button id="btnBgm" data-testid="btn-bgm" aria-label="background music" style="background:var(--panel);border:1px solid var(--line);color:var(--mute);border-radius:10px;padding:6px 10px;font-family:inherit;font-size:14px;cursor:pointer;opacity:.5">🎵</button>
+        <button id="btnQuit" data-testid="btn-quit-session" class="session-tool" style="background:var(--panel);border:1px solid var(--line);color:var(--mute);border-radius:10px;padding:6px 12px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer">✕ 나가기</button>
+        <button id="btnMute" data-testid="btn-mute" class="session-tool" style="background:var(--panel);border:1px solid var(--line);color:var(--mute);border-radius:10px;padding:6px 10px;font-family:inherit;font-size:14px;cursor:pointer">🔊</button>
+        <button id="btnBgm" data-testid="btn-bgm" class="session-tool" aria-label="background music" style="background:var(--panel);border:1px solid var(--line);color:var(--mute);border-radius:10px;padding:6px 10px;font-family:inherit;font-size:14px;cursor:pointer;opacity:.5">🎵</button>
         <!-- F24: 카드 세션 중에도 언어전환 — 공간 제약상 3버튼 대신 탭마다 순환하는 소형 버튼 -->
-        <button id="btnLang" data-testid="btn-lang-session" aria-label="language" style="background:var(--panel);border:1px solid var(--line);color:var(--mute);border-radius:10px;padding:6px 10px;font-family:inherit;font-size:14px;cursor:pointer">🌐</button>
+        <button id="btnLang" data-testid="btn-lang-session" class="session-tool" aria-label="language" style="background:var(--panel);border:1px solid var(--line);color:var(--mute);border-radius:10px;padding:6px 10px;font-family:inherit;font-size:14px;cursor:pointer">🌐</button>
         <div class="progress" id="sessProg" style="flex:1;text-align:right"></div>
       </div>
       <div class="cardwrap">
@@ -594,7 +599,7 @@ let state=readStoredJson("voca_v1",null);
 if(!state) state={level:null,trust:1.0,words:{},streak:0,lastDay:null,total:0,latencies:[]};
 function save(){storageSet("voca_v1",JSON.stringify(state));}
 const APP_VER="v2.3";
-const BUILD_ID="2026-07-17.10"; /* F48: PWA 설치 배너 재노출·플랫폼별 안내. 내용 바뀔 때마다 이 값도 반드시 갱신 */
+const BUILD_ID="2026-07-18.1"; /* F49-F68: 즉시 실행 가능 20개 항목 일괄 완결. 내용 바뀔 때마다 이 값도 반드시 갱신 */
 const PUBLIC_APP_URL="https://hanksleekorea-boop.github.io/vocascan-web/?build="+BUILD_ID;
 /* ── 계측: 이벤트 로그(localStorage voca_log, 최대 500건) ── */
 function evlog(ev,d){const L=readStoredJson("voca_log",runtimeLog);runtimeLog=Array.isArray(L)?L:runtimeLog;runtimeLog.push([Date.now(),ev,d===undefined?null:d]);while(runtimeLog.length>500)runtimeLog.shift();storageSet("voca_log",JSON.stringify(runtimeLog));}
@@ -879,10 +884,16 @@ $$(".tab").forEach(t=>t.onclick=()=>{
   $$(".tab").forEach(x=>x.classList.remove("active"));t.classList.add("active");
   show(t.dataset.scr);
 });
+/* F51: 결과 화면처럼 매번 다시 그려지는 버튼은 인라인 onclick 대신 행동 키로 한곳에서 처리한다. */
+document.addEventListener("click",e=>{
+  const action=e.target.closest("[data-action]");
+  if(!action)return;
+  if(action.dataset.action==="go-home")show("home");
+});
 
 /* ══════════ 세션 엔진 (스캔/학습 공용) ══════════ */
 const sess={mode:null,queue:[],idx:0,startTs:0,cardTs:0,latTimer:null,
-  seq:[],results:[],deadline:0,probing:false,finished:false};
+  seq:[],results:[],deadline:0,probing:false,finished:false,scanFinalized:false};
 
 /* F37: 홈·오답·재시도 등 어떤 진입점도 스텝6 계측을 빠뜨리지 않도록 세션 엔진에서 중앙 보장.
    결과화면처럼 직전에 명시적으로 기록한 경로는 3초 이내 중복을 억제한다. */
@@ -894,7 +905,7 @@ function ensureProgramPick(mode){
 }
 function startSession(mode,queue,opts){
   ensureProgramPick(mode);
-  Object.assign(sess,{mode,queue,idx:0,seq:[],results:[],probing:false,finished:false,history:[],
+  Object.assign(sess,{mode,queue,idx:0,seq:[],results:[],probing:false,finished:false,scanFinalized:false,history:[],
     noTimer:!!(opts&&opts.noTimer),
     startTs:Date.now(),deadline:mode==="scan"?Date.now()+60000:0});
   evlog("sess_start",{mode:mode,n:queue.length});
@@ -1259,7 +1270,25 @@ function scanLevelEstimate(seq){
   const calibrated=(raw>1&&raw<9)?raw-0.5:raw;
   return Math.round(Math.max(1,Math.min(9,calibrated))*10)/10;
 }
+/* F50: 성공 결과의 축하 연출은 감소 모션 환경에서는 생략하고, 완료 뒤 자동 제거한다. */
+function launchResultConfetti(target,count){
+  if(!target||window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+  const wrap=document.createElement("div");
+  wrap.className="result-confetti";
+  const cols=['#FFD24A','#3E9B6E','#8B7BF0','#4DD0E1','#FF8A3D'];
+  for(let i=0;i<count;i++){
+    const c=document.createElement('i');
+    c.setAttribute('aria-hidden','true');
+    c.style.cssText='position:absolute;top:-10px;left:'+(Math.random()*100)+'%;width:8px;height:8px;background:'+cols[i%cols.length]+';border-radius:2px;animation:confetti '+(0.8+Math.random()*0.8)+'s '+(Math.random()*0.4)+'s ease-in forwards';
+    wrap.appendChild(c);
+  }
+  target.appendChild(wrap);
+  setTimeout(()=>wrap.remove(),2200);
+}
 function finishScan(){
+  /* F54/F65: 빠른 연속 입력·예약된 카드 콜백이 겹쳐도 scan_done·결과화면은 한 번만 확정한다. */
+  if(sess.scanFinalized)return;
+  sess.scanFinalized=true;
   clearInterval(sess.latTimer);
   /* 초기 5문항(수렴 전)은 워밍업으로 제외, 이후 후반일수록 가중 */
   const seq=sess.seq;
@@ -1272,6 +1301,7 @@ function finishScan(){
   evlog("scan_done",{lv:state.level,prev:prev,n:seq.length});
   renderResultBox();
   show("result");
+  launchResultConfetti($("#resultBox"),18);
 }
 /* F24 [07-13]: finishScan()에서 결과화면 빌드 부분을 분리 — 상태계산·markStreak·evlog는 finishScan()에서 1회만,
    여기는 순수 재번역/재렌더용이라 언어전환 시 안전하게 재호출 가능(state.level/state.lastScanLv/sess.seq는 이미 저장된 값 재사용, 재계산 없음) */
@@ -1296,7 +1326,7 @@ function renderResultBox(){
     '<button class="bigbtn" id="scanCta"></button>'+
     '<div style="font-size:12px"><a id="whyLevel" style="color:var(--mute);text-decoration:underline;cursor:pointer">'+t('whyLevel')+'</a></div>'+
     '<div id="postScanProgs" style="width:100%;max-width:340px"></div>'+
-    '<button class="bigbtn ghostbtn" onclick="show(\'home\')" style="margin-top:2px">'+t('homeBtn')+'</button>'+
+    '<button class="bigbtn ghostbtn" data-action="go-home" style="margin-top:2px">'+t('homeBtn')+'</button>'+
     '<button id="btnRetestResult" data-testid="btn-retest-result" style="background:none;border:none;'+
     'color:var(--mute);font-family:inherit;font-size:12px;text-decoration:underline;cursor:pointer;margin-top:6px">'+t('retest')+'</button>';
   const co=coachPick(),coQueue=recommendedQueue(co.q);
@@ -1354,7 +1384,7 @@ function finishDetail(){
       (prev!=null?'<br>'+t('scanVs')+' <b style="color:var(--o)">'+(diff>=0?"+":"")+diff.toFixed(2)+' LV</b>':'')+
       '</div>'+
     '<div style="font-size:11px;color:var(--mute)">'+items.length+' '+t('respAnalyzed')+'</div>'+
-    '<button class="bigbtn ghostbtn" onclick="show(\'home\')" style="margin-top:2px">'+t('homeBtn')+'</button>';
+    '<button class="bigbtn ghostbtn" data-action="go-home" style="margin-top:2px">'+t('homeBtn')+'</button>';
   show("result");
 }
 
@@ -1389,12 +1419,11 @@ function finishPromo(){
   save();
   evlog("promo_done",{target:target,ok:okCnt,need:need,pass:pass});
   $("#resultBox").innerHTML= pass?
-    '<div id="confettiWrap" style="position:absolute;inset:0;overflow:hidden;pointer-events:none"></div>'+
     '<div style="font-size:13px;color:var(--accent);letter-spacing:3px;font-weight:700;animation:countup .4s both">'+t('promoSuccess')+'</div>'+
     '<div class="rbig" style="background:var(--grad-gold);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:pop .6s .2s both;filter:drop-shadow(var(--glow))">LV '+target+'</div>'+
     '<div style="font-size:17px;font-weight:800;animation:countup .4s .4s both">'+frameLabel(state.level)+'</div>'+
     '<div style="font-size:13px;color:var(--mute);animation:countup .4s .5s both">'+okCnt+'/'+sess.results.length+' '+t('promoPass')+' '+need+')</div>'+
-    '<button class="bigbtn" onclick="show(\'home\')" style="animation:countup .4s .6s both">'+t('newLevel')+'</button>'
+    '<button class="bigbtn" data-action="go-home" style="animation:countup .4s .6s both">'+t('newLevel')+'</button>'
     :
     '<div style="font-size:13px;color:var(--mute);letter-spacing:3px;font-weight:700">'+t('promoHold')+'</div>'+
     '<div class="rbig" style="color:var(--x)">'+okCnt+'/'+sess.results.length+'</div>'+
@@ -1403,18 +1432,10 @@ function finishPromo(){
     '<div style="font-size:11px;color:var(--accent);font-weight:700;margin-top:4px">'+t('promoGap1')+' '+(need-okCnt)+t('promoGap2')+'</div></div>'+
     '<div style="font-size:14px;line-height:1.7">'+t('promoFail1')+' '+need+' '+t('promoFail2')+'<br><span style="color:var(--mute);font-size:12px">'+t('promoFail3')+' '+target+' '+t('promoFail4')+'</span></div>'+
     '<button id="btnPromoRetry" data-testid="btn-promo-retry" class="bigbtn" style="margin-top:2px">'+t('promoRetry')+'</button>'+
-    '<button class="bigbtn ghostbtn" onclick="show(\'home\')" style="margin-top:2px">'+t('promoPrep')+'</button>';
+    '<button class="bigbtn ghostbtn" data-action="go-home" style="margin-top:2px">'+t('promoPrep')+'</button>';
   show("result");
   if(!pass){const pr=$("#btnPromoRetry");if(pr)pr.onclick=()=>startPromo();}
-  if(pass){
-    const wrap=$("#confettiWrap");
-    if(wrap){const cols=['#FFD24A','#3E9B6E','#8B7BF0','#4DD0E1','#FF8A3D'];
-      for(let i=0;i<28;i++){const c=document.createElement('div');
-        c.style.cssText='position:absolute;top:-10px;left:'+(Math.random()*100)+'%;width:8px;height:8px;'+
-        'background:'+cols[i%5]+';border-radius:2px;animation:confetti '+(0.8+Math.random()*0.8)+'s '+(Math.random()*0.4)+'s ease-in forwards';
-        wrap.appendChild(c);}
-    }
-  }
+  if(pass)launchResultConfetti($("#resultBox"),28);
 }
 
 /* ── 학습 세션 종료 ── */
@@ -1502,8 +1523,9 @@ function finishStudy(){
 
     '<button class="bigbtn" id="rxBtn" style="margin-top:4px">'+rxBtn+'</button>'+
     '<button id="btnStudyRetry" data-testid="btn-study-retry" class="bigbtn ghostbtn" style="margin-top:8px">'+t('studyRetry')+'</button>'+
-    '<button class="bigbtn ghostbtn" onclick="show(\'home\')" style="margin-top:2px">'+t('homeBtn')+'</button>';
+    '<button class="bigbtn ghostbtn" data-action="go-home" style="margin-top:2px">'+t('homeBtn')+'</button>';
   show("result");
+  if(acc>=80)launchResultConfetti($("#resultBox"),16);
   /* XP 카운트업 연출 + 틱 사운드 */
   (function(){
     const el=$("#xpCount");if(!el)return;
@@ -1905,8 +1927,8 @@ function renderRank(){
   const countryTabs=rankScope==='world'
     ?'<div class="footnote" style="margin:0 0 12px">'+t('worldAll')+'</div>'
     :'<div class="sect" style="margin-top:2px">'+t('rankCountryPick')+'</div>'+
-      '<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-bottom:7px">'+
-      countries().map(([code,label])=>'<button class="btn'+(comparisonCountry===code?' accent':'')+'" data-rc="'+code+'" '+
+      '<div role="group" aria-label="'+t('rankCountryPick')+'" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-bottom:7px">'+
+      countries().map(([code,label])=>'<button type="button" class="btn'+(comparisonCountry===code?' accent':'')+'" data-rc="'+code+'" aria-pressed="'+(comparisonCountry===code)+'" '+
         'style="padding:8px 4px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+label+'">'+label+
         (code===state.country?' <span style="font-size:9px;opacity:.78">· '+t('rankMyCountry')+'</span>':'')+'</button>').join('')+'</div>'+
       '<div class="footnote" style="margin:0 0 12px">'+t('rankCountryHint')+'</div>';
