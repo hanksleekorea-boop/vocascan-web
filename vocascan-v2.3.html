@@ -601,7 +601,7 @@ let state=readStoredJson("voca_v1",null);
 if(!state) state={level:null,trust:1.0,words:{},streak:0,lastDay:null,total:0,latencies:[]};
 function save(){storageSet("voca_v1",JSON.stringify(state));}
 const APP_VER="v2.3";
-const BUILD_ID="2026-07-18.7"; /* F131: 160개 뜻·품사 편집 표본 감사. 내용 바뀔 때마다 이 값도 반드시 갱신 */
+const BUILD_ID="2026-07-18.8"; /* F132: PWA 브라우저 안내 폴백 렌더링 감사. 내용 바뀔 때마다 이 값도 반드시 갱신 */
 const PUBLIC_APP_URL="https://hanksleekorea-boop.github.io/vocascan-web/?build="+BUILD_ID;
 /* ── 계측: 이벤트 로그(localStorage voca_log, 최대 500건) ── */
 function evlog(ev,d){const L=readStoredJson("voca_log",runtimeLog);runtimeLog=Array.isArray(L)?L:runtimeLog;runtimeLog.push([Date.now(),ev,d===undefined?null:d]);while(runtimeLog.length>500)runtimeLog.shift();storageSet("voca_log",JSON.stringify(runtimeLog));}
