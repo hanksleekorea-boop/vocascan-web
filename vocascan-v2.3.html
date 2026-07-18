@@ -562,6 +562,9 @@ Object.assign(I18N.en,{rankCountryPick:"Compare country",rankCountryHint:"This c
 Object.assign(I18N.ko,{wrongFilterAll:"전체",wrongFilterWeak:"미정복",wrongFilterRecovering:"회복중",wrongSortRecent:"최근 오답순",wrongSortCount:"오답 많은 순",wrongSortWeak:"낮은 숙련도순",wrongShown:"개 표시",wrongFilteredReview:"현재 목록 복습",wrongFilteredReviewDesc:"필터·정렬된 오답만 다시 풉니다",noWrongFilter:"조건에 맞는 오답이 없어요."});
 Object.assign(I18N.th,{wrongFilterAll:"ทั้งหมด",wrongFilterWeak:"ยังไม่พิชิต",wrongFilterRecovering:"กำลังฟื้น",wrongSortRecent:"ผิดล่าสุด",wrongSortCount:"ผิดมากสุด",wrongSortWeak:"ความแม่นต่ำสุด",wrongShown:"คำที่แสดง",wrongFilteredReview:"ทบทวนรายการนี้",wrongFilteredReviewDesc:"ทบทวนเฉพาะคำผิดที่กรองและเรียงแล้ว",noWrongFilter:"ไม่มีคำผิดที่ตรงเงื่อนไข"});
 Object.assign(I18N.en,{wrongFilterAll:"All",wrongFilterWeak:"Not mastered",wrongFilterRecovering:"Recovering",wrongSortRecent:"Most recent",wrongSortCount:"Most missed",wrongSortWeak:"Lowest mastery",wrongShown:"shown",wrongFilteredReview:"Review this list",wrongFilteredReviewDesc:"Study only the filtered and sorted wrong words",noWrongFilter:"No wrong words match this filter."});
+Object.assign(I18N.ko,{proOfferBadge:"15문항 완주 후 안내",proOfferTitle:"VocaScan Pro 사전 체험단",proOfferDesc:"무제한 맞춤 프로그램·정밀 약점 분석·목표별 학습을 준비하고 있어요.",proOfferPrice:"출시 예정가",proOfferCta:"무료 사전 체험 관심 등록",proOfferRegistered:"관심 등록 완료",proOfferFree:"지금 쓰는 무료 학습은 그대로 유지됩니다."});
+Object.assign(I18N.th,{proOfferBadge:"แสดงหลังเรียนครบ 15 ข้อ",proOfferTitle:"ทดลอง VocaScan Pro ก่อนใคร",proOfferDesc:"เรากำลังเตรียมโปรแกรมเฉพาะบุคคลไม่จำกัด การวิเคราะห์จุดอ่อน และเส้นทางตามเป้าหมาย",proOfferPrice:"ราคาเปิดตัวโดยประมาณ",proOfferCta:"สนใจทดลองฟรีล่วงหน้า",proOfferRegistered:"ลงทะเบียนความสนใจแล้ว",proOfferFree:"การเรียนฟรีที่ใช้อยู่จะยังคงเดิม"});
+Object.assign(I18N.en,{proOfferBadge:"Shown after all 15 questions",proOfferTitle:"Early access to VocaScan Pro",proOfferDesc:"Unlimited custom programs, deep weakness insights, and goal tracks are in development.",proOfferPrice:"Planned launch price",proOfferCta:"Join the free early-access list",proOfferRegistered:"Interest registered",proOfferFree:"Your current free learning stays available."});
 function t(key){return (I18N[state.lang||"ko"]||I18N.ko)[key]||key;}
 /* 뜻 조회: 언어별 분기 (태국어 없으면 한국어 폴백) */
 function thMean(k){k=k.toLowerCase();return Object.prototype.hasOwnProperty.call(TH_MEANINGS,k)?TH_MEANINGS[k]:null;}
@@ -601,10 +604,31 @@ let state=readStoredJson("voca_v1",null);
 if(!state) state={level:null,trust:1.0,words:{},streak:0,lastDay:null,total:0,latencies:[]};
 function save(){storageSet("voca_v1",JSON.stringify(state));}
 const APP_VER="v2.3";
-const BUILD_ID="2026-07-18.12"; /* F136: 번역 값·금지 HTML 감사. 내용 바뀔 때마다 이 값도 반드시 갱신 */
+const BUILD_ID="2026-07-18.13"; /* F140~F145: 15문항 완주 후 Pro 관심도 관찰 모드. 내용 바뀔 때마다 이 값도 반드시 갱신 */
+const MONETIZATION_OBSERVE=true;
+const PRO_PRICES={
+  ko:{monthly:"월 4,900원",yearly:"연 39,000원",goal90:"90일 9,900원"},
+  th:{monthly:"฿129/เดือน",yearly:"฿990/ปี",goal90:"90 วัน ฿249"},
+  en:{monthly:"$3.99/month",yearly:"$29.99/year",goal90:"90 days $7.99"}
+};
+function proPriceLabel(){const p=PRO_PRICES[state.lang]||PRO_PRICES.en;return t("proOfferPrice")+" "+p.monthly+" · "+p.yearly;}
 const PUBLIC_APP_URL="https://hanksleekorea-boop.github.io/vocascan-web/?build="+BUILD_ID;
 /* ── 계측: 이벤트 로그(localStorage voca_log, 최대 500건) ── */
 function evlog(ev,d){const L=readStoredJson("voca_log",runtimeLog);runtimeLog=Array.isArray(L)?L:runtimeLog;runtimeLog.push([Date.now(),ev,d===undefined?null:d]);while(runtimeLog.length>500)runtimeLog.shift();storageSet("voca_log",JSON.stringify(runtimeLog));}
+function registerProInterest(source){
+  const first=!state.proInterest;
+  if(first){state.proInterest=true;state.premiumTaps=(state.premiumTaps||0)+1;save();}
+  evlog("pro_interest",{source:source||"unknown",first:first});
+  return first;
+}
+function monetizationFunnel(){
+  const L=readStoredJson("voca_log",runtimeLog),rows=Array.isArray(L)?L:[];
+  const offerViews=rows.filter(x=>Array.isArray(x)&&x[1]==="pro_offer_view").length;
+  const interests=rows.filter(x=>Array.isArray(x)&&x[1]==="pro_interest");
+  const uniqueInterest=interests.some(x=>x[2]&&x[2].first)?1:0;
+  return{mode:MONETIZATION_OBSERVE?"observe":"off",offerViews:offerViews,interestEvents:interests.length,uniqueInterest:uniqueInterest,interestRatePct:offerViews?Math.round(uniqueInterest/offerViews*1000)/10:0};
+}
+window.vocaMonetization=monetizationFunnel;
 window.vocaLog=function(){const L=readStoredJson("voca_log",runtimeLog);runtimeLog=Array.isArray(L)?L:runtimeLog;return runtimeLog;};
 function legacyCopy(txt){const ta=document.createElement("textarea");ta.value=txt;ta.style.cssText="position:fixed;opacity:0";document.body.appendChild(ta);ta.select();try{document.execCommand("copy");}catch(e){}ta.remove();}
 function copyText(txt,ok){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(ok).catch(function(){legacyCopy(txt);ok();});}else{legacyCopy(txt);ok();}}
@@ -1491,6 +1515,15 @@ function finishStudy(){
   /* 성과 게이지(정답률) */
   const accColor=acc>=80?'var(--o)':acc>=50?'var(--accent)':'var(--x)';
   const R=54, CIRC=2*Math.PI*R, off=CIRC*(1-acc/100);
+  const proOfferHtml=MONETIZATION_OBSERVE?
+    '<section id="proOffer" data-testid="pro-offer" aria-labelledby="proOfferTitle" style="width:100%;max-width:340px;background:linear-gradient(145deg,rgba(245,185,60,.13),rgba(120,91,255,.12));border:1px dashed var(--accent);border-radius:14px;padding:14px;text-align:left;margin-top:6px">'+
+      '<div style="font-size:10px;color:var(--accent);font-weight:800;letter-spacing:1px">'+t('proOfferBadge')+'</div>'+
+      '<div id="proOfferTitle" style="font-size:16px;color:var(--txt);font-weight:800;margin-top:4px">✨ '+t('proOfferTitle')+'</div>'+
+      '<div style="font-size:12px;color:var(--mute);line-height:1.55;margin-top:5px">'+t('proOfferDesc')+'</div>'+
+      '<div style="font-size:12px;color:var(--accent);font-weight:700;margin-top:7px">'+proPriceLabel()+'</div>'+
+      '<button id="btnProInterest" data-testid="btn-pro-interest" style="width:100%;min-height:48px;border:0;border-radius:12px;margin-top:10px;background:var(--accent);color:#15110a;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer"'+(state.proInterest?' disabled':'')+'>'+(state.proInterest?'✓ '+t('proOfferRegistered'):t('proOfferCta'))+'</button>'+
+      '<div style="font-size:10px;color:var(--mute);line-height:1.45;margin-top:7px">'+t('proOfferFree')+'</div>'+
+    '</section>':'';
 
   $("#resultBox").innerHTML=
     '<div style="font-size:13px;color:var(--mute);letter-spacing:2px;font-weight:700">'+t('sessReport')+'</div>'+
@@ -1526,10 +1559,13 @@ function finishStudy(){
       '<div style="font-size:11px;color:var(--accent);font-weight:700;margin-bottom:4px">💡 '+t('prescription')+'</div>'+
       '<div style="font-size:13px;color:var(--txt);line-height:1.5">'+rx+'</div></div>'+
 
+    proOfferHtml+
+
     '<button class="bigbtn" id="rxBtn" style="margin-top:4px">'+rxBtn+'</button>'+
     '<button id="btnStudyRetry" data-testid="btn-study-retry" class="bigbtn ghostbtn" style="margin-top:8px">'+t('studyRetry')+'</button>'+
     '<button class="bigbtn ghostbtn" data-action="go-home" style="margin-top:2px">'+t('homeBtn')+'</button>';
   show("result");
+  if(MONETIZATION_OBSERVE)evlog("pro_offer_view",{source:"study_complete",n:r.length,acc:acc,registered:!!state.proInterest});
   if(acc>=80)launchResultConfetti($("#resultBox"),16);
   /* XP 카운트업 연출 + 틱 사운드 */
   (function(){
@@ -1539,6 +1575,13 @@ function finishStudy(){
       if(++tickN%3===0)SFX.tick();
       if(cur>=target){clearInterval(iv);}},28);
   })();
+  const proInterestEl=$("#btnProInterest");
+  if(proInterestEl&&!state.proInterest)proInterestEl.onclick=()=>{
+    registerProInterest("study_complete");
+    proInterestEl.disabled=true;
+    proInterestEl.textContent="✓ "+t("proOfferRegistered");
+    toast(t("aiLockToast"));
+  };
   $("#rxBtn").onclick=()=>{
     const kind={unk:"unk",slow:"slow",due:"due",up:"up"}[rxAct];
     const p=buildPacks().find(x=>x.kind===kind);
@@ -1808,7 +1851,7 @@ function renderHome(){
   const aiEl=$("#aiPack");
   if(aiEl)aiEl.onclick=()=>{if(!ai.length){toast(t("emptyPack"));return;}startSession("study",ai.map(x=>x.i));};
   const lockEl=$("#aiLock");
-  if(lockEl)lockEl.onclick=()=>{state.premiumTaps=(state.premiumTaps||0)+1;save();toast(t("aiLockToast"));};
+  if(lockEl)lockEl.onclick=()=>{registerProInterest("ai_lock");toast(t("aiLockToast"));};
   /* 레벨 재측정(홈에서 첫 스캔 재실행) — 학습기록·단어장 유지, state.level만 재계산 */
   const retestHtml='<div style="text-align:center;margin:22px 0 8px">'+
     '<button id="btnRetest" data-testid="btn-retest" style="background:none;border:1px solid var(--line);color:var(--mute);'+
@@ -2132,7 +2175,7 @@ function renderStats(){
   const dbtn=$("#btnDetailScan");
   if(dbtn)dbtn.onclick=()=>startSession("detail",[]);
   const cl=$("#btnCopyLog");
-  if(cl)cl.onclick=()=>copyText(JSON.stringify({ver:APP_VER,build:BUILD_ID,lv:state.level,total:state.total,streak:state.streak,log:window.vocaLog()}),
+  if(cl)cl.onclick=()=>copyText(JSON.stringify({ver:APP_VER,build:BUILD_ID,lv:state.level,total:state.total,streak:state.streak,monetization:monetizationFunnel(),log:window.vocaLog()}),
     ()=>{cl.textContent="\u2713 "+t('copied');setTimeout(()=>{cl.textContent="\uD83D\uDCCB "+t('copyLog');},1500);});
   const rw=$("#reviewWrong");
   if(rw)rw.onclick=()=>{
