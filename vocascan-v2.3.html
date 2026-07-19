@@ -604,13 +604,31 @@ let state=readStoredJson("voca_v1",null);
 if(!state) state={level:null,trust:1.0,words:{},streak:0,lastDay:null,total:0,latencies:[]};
 function save(){storageSet("voca_v1",JSON.stringify(state));}
 const APP_VER="v2.3";
-const BUILD_ID="2026-07-19.1"; /* F145: 무료 일일 사용량 그림자 계측. 내용 바뀔 때마다 이 값도 반드시 갱신 */
+const BUILD_ID="2026-07-19.2"; /* F146: 90일 목표팩 카탈로그·권한 스키마. 내용 바뀔 때마다 이 값도 반드시 갱신 */
 const MONETIZATION_OBSERVE=true;
 const PRO_PRICES={
   ko:{monthly:"월 4,900원",yearly:"연 39,000원",goal90:"90일 9,900원"},
   th:{monthly:"฿129/เดือน",yearly:"฿990/ปี",goal90:"90 วัน ฿249"},
   en:{monthly:"$3.99/month",yearly:"$29.99/year",goal90:"90 days $7.99"}
 };
+/* 결제 전 카탈로그 계약: 이 정의만으로는 구매·권한 부여가 절대 일어나지 않는다. */
+const GOAL90_PRODUCT=Object.freeze({
+  schemaVersion:1,
+  id:"vocascan_goal_90_v1",
+  kind:"one_time_goal_pack",
+  status:"catalog_only",
+  durationDays:90,
+  targets:["toeic","ielts","suneung"],
+  purchase:{enabled:false,priceHypothesis:true,serverAuthorityRequired:true,clientGrantAllowed:false},
+  markets:{
+    ko:{currency:"KRW",amount:9900,label:"90일 9,900원"},
+    th:{currency:"THB",amount:249,label:"90 วัน ฿249"},
+    en:{currency:"USD",amount:7.99,label:"90 days $7.99"}
+  },
+  entitlements:["goal_track","weekly_milestones","goal_progress_review"],
+  excludes:["pro_unlimited","payment","account_backup"]
+});
+function goal90Product(){return JSON.parse(JSON.stringify(GOAL90_PRODUCT));}
 function proPriceLabel(){const p=PRO_PRICES[state.lang]||PRO_PRICES.en;return t("proOfferPrice")+" "+p.monthly+" · "+p.yearly;}
 const PUBLIC_APP_URL="https://hanksleekorea-boop.github.io/vocascan-web/?build="+BUILD_ID;
 /* ── 계측: 이벤트 로그(localStorage voca_log, 최대 500건) ── */
@@ -641,6 +659,7 @@ function freeUsageShadow(now){
 function recordFreeUsageShadow(){const summary=freeUsageShadow();evlog("free_usage_shadow",summary);return summary;}
 window.vocaMonetization=monetizationFunnel;
 window.vocaUsageShadow=freeUsageShadow;
+window.vocaProducts=function(){return{goal90:goal90Product()};};
 window.vocaLog=function(){const L=readStoredJson("voca_log",runtimeLog);runtimeLog=Array.isArray(L)?L:runtimeLog;return runtimeLog;};
 function legacyCopy(txt){const ta=document.createElement("textarea");ta.value=txt;ta.style.cssText="position:fixed;opacity:0";document.body.appendChild(ta);ta.select();try{document.execCommand("copy");}catch(e){}ta.remove();}
 function copyText(txt,ok){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(ok).catch(function(){legacyCopy(txt);ok();});}else{legacyCopy(txt);ok();}}
