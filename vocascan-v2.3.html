@@ -604,7 +604,7 @@ let state=readStoredJson("voca_v1",null);
 if(!state) state={level:null,trust:1.0,words:{},streak:0,lastDay:null,total:0,latencies:[]};
 function save(){storageSet("voca_v1",JSON.stringify(state));}
 const APP_VER="v2.3";
-const BUILD_ID="2026-07-18.13"; /* F140~F145: 15문항 완주 후 Pro 관심도 관찰 모드. 내용 바뀔 때마다 이 값도 반드시 갱신 */
+const BUILD_ID="2026-07-19.1"; /* F145: 무료 일일 사용량 그림자 계측. 내용 바뀔 때마다 이 값도 반드시 갱신 */
 const MONETIZATION_OBSERVE=true;
 const PRO_PRICES={
   ko:{monthly:"월 4,900원",yearly:"연 39,000원",goal90:"90일 9,900원"},
@@ -626,9 +626,21 @@ function monetizationFunnel(){
   const offerViews=rows.filter(x=>Array.isArray(x)&&x[1]==="pro_offer_view").length;
   const interests=rows.filter(x=>Array.isArray(x)&&x[1]==="pro_interest");
   const uniqueInterest=interests.some(x=>x[2]&&x[2].first)?1:0;
-  return{mode:MONETIZATION_OBSERVE?"observe":"off",offerViews:offerViews,interestEvents:interests.length,uniqueInterest:uniqueInterest,interestRatePct:offerViews?Math.round(uniqueInterest/offerViews*1000)/10:0};
+  return{mode:MONETIZATION_OBSERVE?"observe":"off",offerViews:offerViews,interestEvents:interests.length,uniqueInterest:uniqueInterest,interestRatePct:offerViews?Math.round(uniqueInterest/offerViews*1000)/10:0,freeUsageToday:freeUsageShadow()};
 }
+function localDayKey(ts){
+  const d=new Date(ts===undefined?Date.now():ts),pad=n=>String(n).padStart(2,"0");
+  return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+}
+function freeUsageShadow(now){
+  const day=localDayKey(now),L=readStoredJson("voca_log",runtimeLog),rows=Array.isArray(L)?L:[];
+  let completedPrograms=0,questions=0;
+  rows.forEach(x=>{if(Array.isArray(x)&&x[1]==="study_done"&&localDayKey(x[0])===day){completedPrograms++;questions+=Number(x[2]&&x[2].n)||0;}});
+  return{day:day,completedPrograms:completedPrograms,questions:questions,enforced:false};
+}
+function recordFreeUsageShadow(){const summary=freeUsageShadow();evlog("free_usage_shadow",summary);return summary;}
 window.vocaMonetization=monetizationFunnel;
+window.vocaUsageShadow=freeUsageShadow;
 window.vocaLog=function(){const L=readStoredJson("voca_log",runtimeLog);runtimeLog=Array.isArray(L)?L:runtimeLog;return runtimeLog;};
 function legacyCopy(txt){const ta=document.createElement("textarea");ta.value=txt;ta.style.cssText="position:fixed;opacity:0";document.body.appendChild(ta);ta.select();try{document.execCommand("copy");}catch(e){}ta.remove();}
 function copyText(txt,ok){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(ok).catch(function(){legacyCopy(txt);ok();});}else{legacyCopy(txt);ok();}}
@@ -1485,6 +1497,7 @@ function finishStudy(){
   const acc=Math.round(correct/n*100);
   state.lastAcc=acc;state.coachCtx=null;save();
   evlog("study_done",{n:r.length,acc:acc});
+  recordFreeUsageShadow();
   const avgLat=(r.reduce((a,x)=>a+x.lat,0)/n/1000).toFixed(1);
   const sessXp=r.reduce((a,x)=>a+(x.outcome==='x'?3:Math.round(x.K*10)),0);
   const secs=Math.round((Date.now()-sess.startTs)/1000);
