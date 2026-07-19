@@ -563,9 +563,9 @@ Object.assign(I18N.en,{rankCountryPick:"Compare country",rankCountryHint:"This c
 Object.assign(I18N.ko,{wrongFilterAll:"전체",wrongFilterWeak:"미정복",wrongFilterRecovering:"회복중",wrongSortRecent:"최근 오답순",wrongSortCount:"오답 많은 순",wrongSortWeak:"낮은 숙련도순",wrongShown:"개 표시",wrongFilteredReview:"현재 목록 복습",wrongFilteredReviewDesc:"필터·정렬된 오답만 다시 풉니다",noWrongFilter:"조건에 맞는 오답이 없어요."});
 Object.assign(I18N.th,{wrongFilterAll:"ทั้งหมด",wrongFilterWeak:"ยังไม่พิชิต",wrongFilterRecovering:"กำลังฟื้น",wrongSortRecent:"ผิดล่าสุด",wrongSortCount:"ผิดมากสุด",wrongSortWeak:"ความแม่นต่ำสุด",wrongShown:"คำที่แสดง",wrongFilteredReview:"ทบทวนรายการนี้",wrongFilteredReviewDesc:"ทบทวนเฉพาะคำผิดที่กรองและเรียงแล้ว",noWrongFilter:"ไม่มีคำผิดที่ตรงเงื่อนไข"});
 Object.assign(I18N.en,{wrongFilterAll:"All",wrongFilterWeak:"Not mastered",wrongFilterRecovering:"Recovering",wrongSortRecent:"Most recent",wrongSortCount:"Most missed",wrongSortWeak:"Lowest mastery",wrongShown:"shown",wrongFilteredReview:"Review this list",wrongFilteredReviewDesc:"Study only the filtered and sorted wrong words",noWrongFilter:"No wrong words match this filter."});
-Object.assign(I18N.ko,{proOfferBadge:"15문항 완주 후 안내",proOfferTitle:"VocaScan Pro 사전 체험단",proOfferDesc:"무제한 맞춤 프로그램·정밀 약점 분석·목표별 학습을 준비하고 있어요.",proOfferPrice:"출시 예정가",proOfferCta:"무료 사전 체험 관심 등록",proOfferRegistered:"관심 등록 완료",proOfferFree:"지금 쓰는 무료 학습은 그대로 유지됩니다."});
-Object.assign(I18N.th,{proOfferBadge:"แสดงหลังเรียนครบ 15 ข้อ",proOfferTitle:"ทดลอง VocaScan Pro ก่อนใคร",proOfferDesc:"เรากำลังเตรียมโปรแกรมเฉพาะบุคคลไม่จำกัด การวิเคราะห์จุดอ่อน และเส้นทางตามเป้าหมาย",proOfferPrice:"ราคาเปิดตัวโดยประมาณ",proOfferCta:"สนใจทดลองฟรีล่วงหน้า",proOfferRegistered:"ลงทะเบียนความสนใจแล้ว",proOfferFree:"การเรียนฟรีที่ใช้อยู่จะยังคงเดิม"});
-Object.assign(I18N.en,{proOfferBadge:"Shown after all 15 questions",proOfferTitle:"Early access to VocaScan Pro",proOfferDesc:"Unlimited custom programs, deep weakness insights, and goal tracks are in development.",proOfferPrice:"Planned launch price",proOfferCta:"Join the free early-access list",proOfferRegistered:"Interest registered",proOfferFree:"Your current free learning stays available."});
+Object.assign(I18N.ko,{proOfferBadge:"15문항 완주 후 안내",proOfferTitle:"VocaScan Pro 사전 체험단",proOfferDesc:"무제한 맞춤 프로그램·정밀 약점 분석·목표별 학습을 준비하고 있어요.",proOfferPrice:"출시 예정가",proOfferCta:"무료 사전 체험 관심 등록",proOfferRegistered:"관심 등록 완료",proOfferFree:"지금 쓰는 무료 학습은 그대로 유지됩니다.",proOfferStatus:"관심 등록만 완료했습니다. 결제나 구독은 시작되지 않았습니다."});
+Object.assign(I18N.th,{proOfferBadge:"แสดงหลังเรียนครบ 15 ข้อ",proOfferTitle:"ทดลอง VocaScan Pro ก่อนใคร",proOfferDesc:"เรากำลังเตรียมโปรแกรมเฉพาะบุคคลไม่จำกัด การวิเคราะห์จุดอ่อน และเส้นทางตามเป้าหมาย",proOfferPrice:"ราคาเปิดตัวโดยประมาณ",proOfferCta:"สนใจทดลองฟรีล่วงหน้า",proOfferRegistered:"ลงทะเบียนความสนใจแล้ว",proOfferFree:"การเรียนฟรีที่ใช้อยู่จะยังคงเดิม",proOfferStatus:"ลงทะเบียนความสนใจแล้วเท่านั้น ยังไม่มีการชำระเงินหรือสมัครสมาชิก"});
+Object.assign(I18N.en,{proOfferBadge:"Shown after all 15 questions",proOfferTitle:"Early access to VocaScan Pro",proOfferDesc:"Unlimited custom programs, deep weakness insights, and goal tracks are in development.",proOfferPrice:"Planned launch price",proOfferCta:"Join the free early-access list",proOfferRegistered:"Interest registered",proOfferFree:"Your current free learning stays available.",proOfferStatus:"Your interest is registered only. No payment or subscription has started."});
 function t(key){return (I18N[state.lang||"ko"]||I18N.ko)[key]||key;}
 /* 뜻 조회: 언어별 분기 (태국어 없으면 한국어 폴백) */
 function thMean(k){k=k.toLowerCase();return Object.prototype.hasOwnProperty.call(TH_MEANINGS,k)?TH_MEANINGS[k]:null;}
@@ -605,7 +605,7 @@ let state=readStoredJson("voca_v1",null);
 if(!state) state={level:null,trust:1.0,words:{},streak:0,lastDay:null,total:0,latencies:[]};
 function save(){storageSet("voca_v1",JSON.stringify(state));}
 const APP_VER="v2.3";
-const BUILD_ID="2026-07-19.2"; /* F146: 90일 목표팩 카탈로그·권한 스키마. 내용 바뀔 때마다 이 값도 반드시 갱신 */
+const BUILD_ID="2026-07-19.3"; /* F146: 90일 목표팩 카탈로그·권한 스키마. 내용 바뀔 때마다 이 값도 반드시 갱신 */
 const MONETIZATION_OBSERVE=true;
 const PRO_PRICES={
   ko:{monthly:"월 4,900원",yearly:"연 39,000원",goal90:"90일 9,900원"},
@@ -1555,6 +1555,7 @@ function finishStudy(){
       '<div style="font-size:12px;color:var(--mute);line-height:1.55;margin-top:5px">'+t('proOfferDesc')+'</div>'+
       '<div style="font-size:12px;color:var(--accent);font-weight:700;margin-top:7px">'+proPriceLabel()+'</div>'+
       '<button id="btnProInterest" data-testid="btn-pro-interest" style="width:100%;min-height:48px;border:0;border-radius:12px;margin-top:10px;background:var(--accent);color:#15110a;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer"'+(state.proInterest?' disabled':'')+'>'+(state.proInterest?'✓ '+t('proOfferRegistered'):t('proOfferCta'))+'</button>'+
+      '<div id="proInterestStatus" role="status" aria-live="polite" style="font-size:11px;color:var(--mute);line-height:1.45;margin-top:7px">'+(state.proInterest?t('proOfferStatus'):'')+'</div>'+
       '<div style="font-size:10px;color:var(--mute);line-height:1.45;margin-top:7px">'+t('proOfferFree')+'</div>'+
     '</section>':'';
 
@@ -1613,6 +1614,7 @@ function finishStudy(){
     registerProInterest("study_complete");
     proInterestEl.disabled=true;
     proInterestEl.textContent="✓ "+t("proOfferRegistered");
+    const proStatusEl=$("#proInterestStatus");if(proStatusEl)proStatusEl.textContent=t("proOfferStatus");
     toast(t("aiLockToast"));
   };
   $("#rxBtn").onclick=()=>{
