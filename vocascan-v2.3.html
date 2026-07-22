@@ -2624,5 +2624,32 @@ bindSwipe("#tutWrap",dir=>{
   if(isIOS)setTimeout(()=>{if(!isDismissed())renderIOSGuide();},3000);
 })();
 </script>
+<script>
+/* F174: make the post-study Pro CTA self-describing for assistive technology. */
+(()=>{
+  const hints={
+    ko:'관심 등록은 무료이며 결제나 구독을 시작하지 않습니다. 현재 무료 학습은 계속 사용할 수 있습니다.',
+    th:'การลงทะเบียนความสนใจฟรีและจะไม่เริ่มการชำระเงินหรือสมาชิก การเรียนฟรีปัจจุบันยังใช้งานได้ต่อไป',
+    en:'Interest registration is free and does not start a payment or subscription. Your current free learning stays available.'
+  };
+  function enhanceProInterest(){
+    const button=document.getElementById('btnProInterest');
+    const status=document.getElementById('proInterestStatus');
+    if(!button||!status)return;
+    let hint=document.getElementById('proInterestAssistiveHint');
+    if(!hint){
+      hint=document.createElement('div');
+      hint.id='proInterestAssistiveHint';
+      hint.style.cssText='position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0';
+      button.before(hint);
+    }
+    const hintText=hints[(typeof state!=='undefined'&&state.lang)||'ko']||hints.ko;
+    if(hint.textContent!==hintText)hint.textContent=hintText;
+    button.setAttribute('aria-describedby','proInterestAssistiveHint proInterestStatus');
+  }
+  new MutationObserver(enhanceProInterest).observe(document.body,{childList:true,subtree:true});
+  enhanceProInterest();
+})();
+</script>
 </body>
 </html>
