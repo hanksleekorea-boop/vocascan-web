@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Reversible · prealpha v0.7</title>
+<style>
+  :root{
+    --ink:#0B0E11; --card:#141A20; --card2:#171E25; --jade:#3FE0A2; --amber:#F5B14C;
+    --ember:#FF6B5E; --on:#F4F7F6; --dim:#97A2A0; --faint:#5E6B68; --hair:rgba(255,255,255,.09);
+    --ease:cubic-bezier(.22,.61,.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--ink);color:var(--on);
+    font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Noto Sans KR",sans-serif;
+    display:flex;justify-content:center;min-height:100vh}
+  .app{width:100%;max-width:430px;display:flex;flex-direction:column;min-height:100vh}
+  .hd{display:flex;align-items:center;gap:10px;padding:14px 14px 10px}
+  .mark{width:24px;height:24px;position:relative;flex:none}
+  .mark span{position:absolute;left:2px;right:2px;top:11px;height:2.5px;border-radius:2px}
+  .mark .up{background:var(--amber);transform:rotate(-32deg)}
+  .mark .dn{background:var(--jade);transform:rotate(32deg)}
+  .hd h1{font-size:15px;font-weight:700}
+  .badge{margin-left:auto;font-size:10px;font-weight:700;color:var(--ink);background:var(--jade);padding:3px 8px;border-radius:99px}
+  /* M1 정직고지 배너 (0-1) — 상시 표시 */
+  .notice{display:flex;gap:7px;align-items:flex-start;margin:0 14px 8px;padding:8px 10px;
+    background:rgba(245,177,76,.10);border:1px solid rgba(245,177,76,.35);border-radius:10px;
+    font-size:10.5px;line-height:1.45;color:var(--amber)}
+  .notice b{color:var(--amber);font-weight:700}
+  .notice span.t{color:var(--dim)}
+  .steps{display:flex;gap:5px;padding:0 14px 10px}
+  .dot{flex:1;height:4px;border-radius:2px;background:var(--card2);transition:background .3s var(--ease)}
+  .dot.on{background:var(--jade)}
+  main{flex:1;padding:4px 14px 118px;overflow-y:auto}
+  .card{background:var(--card);border:1px solid var(--hair);border-radius:14px;padding:14px;margin-bottom:12px}
+  h2{font-size:13px;margin-bottom:8px}
+  .dim{color:var(--dim);font-size:12px;line-height:1.5}
+  .faint{color:var(--faint);font-size:10.5px}
+  button{background:var(--card2);color:var(--on);border:1px solid var(--hair);border-radius:10px;
+    padding:11px 14px;font-size:13px;font-family:inherit;cursor:pointer;transition:transform .15s var(--ease)}
+  button:active{transform:scale(.97)}
+  .kbd{cursor:pointer}
+  .kbd:focus-visible,button:focus-visible{outline:2px solid var(--jade);outline-offset:2px}
+  .go{background:var(--jade);color:var(--ink);font-weight:700;border:none;width:100%}
+  .persona{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+  .persona button{text-align:left}
+  .persona b{display:block;font-size:13px}
+  .persona i{font-style:normal;font-size:11px;color:var(--dim)}
+  /* gauge */
+  .gauge{cursor:pointer}
+  .delta{font-size:34px;font-weight:800;color:var(--jade);font-variant-numeric:tabular-nums}
+  .pivot{position:relative;height:6px;background:var(--card2);border-radius:3px;margin:12px 0 4px}
+  .pivot .fill{position:absolute;top:0;bottom:0;border-radius:3px;background:var(--jade)}
+  .pivot .pin{position:absolute;top:-4px;width:2px;height:14px;background:var(--on);left:50%}
+  .plabels{display:flex;justify-content:space-between;font-size:9.5px;color:var(--faint)}
+  .stub{display:inline-block;font-size:9px;color:var(--amber);border:1px solid rgba(245,177,76,.4);
+    border-radius:99px;padding:1px 7px;margin-left:6px;vertical-align:middle}
+  .seen{color:var(--jade);font-size:11px;font-weight:700}
+  /* stack */
+  .item{display:flex;align-items:center;gap:10px;padding:12px 4px;min-height:44px;border-bottom:1px solid var(--hair)}
+  .item:last-child{border-bottom:none}
+  .box{width:22px;height:22px;border-radius:7px;border:1.5px solid var(--faint);flex:none;
+    display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--ink)}
+  .item.done .box{background:var(--jade);border-color:var(--jade)}
+  .item .nm{font-size:13px;flex:1}
+  .item.done .nm{color:var(--dim);text-decoration:line-through}
+  .cnt{font-size:12px;color:var(--dim);margin-top:8px}
+  .cnt b{color:var(--jade)}
+  /* buddies */
+  .buddy{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--hair)}
+  .buddy:last-child{border-bottom:none}
+  .ava{width:36px;height:36px;border-radius:50%;background:var(--card2);display:flex;align-items:center;
+    justify-content:center;font-size:15px;flex:none;border:1px solid var(--hair)}
+  .buddy .who{flex:1}
+  .buddy .who b{font-size:13px;display:block}
+  .buddy .who i{font-style:normal;font-size:11px;color:var(--dim)}
+  .cheer{font-size:12px;min-height:44px}
+  .cheer.sent{background:rgba(63,224,162,.15);color:var(--jade);border-color:transparent}
+  /* nav */
+  nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;
+    display:flex;flex-direction:column;background:var(--card);border-top:1px solid var(--hair)}
+  .rvbar{display:flex;align-items:center;gap:8px;padding:7px 12px 6px;border-bottom:1px solid var(--hair);
+    font-size:10px;color:var(--faint);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .rvbar code{color:var(--jade);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rvbar button{padding:5px 9px;font-size:10px;border-radius:7px;min-height:34px}
+  .navrow{display:flex}
+  .navrow button{flex:1;background:none;border:none;border-radius:0;padding:12px 0 16px;font-size:12px;color:var(--faint)}
+  .navrow button[aria-selected="true"]{color:var(--jade);font-weight:700}
+  /* toolbar + log overlay */
+  .tools{display:flex;gap:7px;margin-top:2px}
+  .tools button{font-size:11px;padding:7px 10px}
+  .ovl{position:fixed;inset:0;background:rgba(11,14,17,.92);display:none;justify-content:center;z-index:20}
+  .ovl.on{display:flex}
+  .ovl .panel{width:100%;max-width:430px;padding:20px 14px;overflow-y:auto}
+  .ev{background:var(--card2);border-radius:8px;padding:7px 9px;font-size:10.5px;margin-bottom:6px;
+    display:flex;gap:8px;align-items:baseline}
+  .ev .g{font-size:9px;font-weight:700;flex:none;width:52px}
+  .g.CORE{color:var(--ember)} .g.BEHAVIOR{color:var(--jade)} .g.SYSTEM{color:var(--dim)}
+  .toast{position:fixed;bottom:104px;left:50%;transform:translateX(-50%);background:var(--card2);
+    border:1px solid var(--hair);border-radius:10px;padding:9px 14px;font-size:12px;opacity:0;
+    transition:opacity .25s;pointer-events:none;max-width:390px;text-align:center;z-index:30}
+  .toast.on{opacity:1}
+  /* [0-11] 인트로 덱 */
+  .deckcard{background:var(--card);border:1px solid var(--hair);border-radius:14px;padding:18px 14px;margin-bottom:12px}
+  .ddots{display:flex;gap:6px;justify-content:center;margin-bottom:14px}
+  .ddots .ddot{width:7px;height:7px;border-radius:50%;background:var(--card2)}
+  .ddots .ddot.on{background:var(--jade)}
+  .opts{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+  .opts button{text-align:left;min-height:48px}
+  .opts button.sel{border-color:var(--jade);color:var(--jade);background:rgba(63,224,162,.10)}
+  .opts button[disabled]{opacity:.55}
+  .reveal{margin-top:12px;padding:11px 12px;background:rgba(63,224,162,.08);border:1px solid rgba(63,224,162,.30);
+    border-radius:10px;font-size:12px;line-height:1.5;color:var(--on)}
+  .atts{display:flex;gap:6px;margin-top:8px}
+  .atts button{flex:1;min-height:48px;padding:8px 4px;font-size:12px}
+  .deckbtns{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+  .persona button.recommend{border-color:var(--jade);box-shadow:0 0 0 1px var(--jade) inset}
+  .recbadge{display:inline-block;font-size:9px;font-weight:800;color:var(--ink);background:var(--jade);
+    border-radius:99px;padding:2px 8px;margin-left:6px;vertical-align:middle}
+  #rec-note{font-size:11px;color:var(--jade);margin:2px 0 8px}
+  .tbadge{font-size:8.5px;font-weight:800;border-radius:99px;padding:1px 6px;margin-left:6px;vertical-align:middle}
+  .t-T1{background:rgba(63,224,162,.22);color:var(--jade)}
+  .t-T2{background:rgba(63,224,162,.14);color:var(--jade)}
+  .t-T3{background:rgba(245,177,76,.16);color:var(--amber)}
+  .t-T4{background:rgba(255,107,94,.16);color:var(--ember)}
+  .hide{display:none!important}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hd">
+    <div class="mark"><span class="up"></span><span class="dn"></span></div>
+    <h1>리버서블</h1>
+    <div class="badge">prealpha v0.7</div>
+  </div>
+  <!-- M1 데이터 지속성 정직 고지 (0-1) — 상시 표시, 무손실·무정지·정직고지 3결과 중 정직고지 충족 -->
+  <div class="notice" data-testid="persist-notice" role="note">
+    <b>ⓘ 프리알파 안내</b>
+    <span class="t">입력·체크·응원 기록은 <b>이 브라우저 세션에만</b> 유지됩니다. 새로고침·탭 닫기 시 초기화돼요(서버 저장 없음). 보관하려면 홈의 <b>‘JSON 내보내기’</b>를 쓰세요.</span>
+  </div>
+  <div class="steps" data-testid="step-progress" aria-label="관통 스텝 진행">
+    <div class="dot" data-testid="step-dot-1" title="S1 앱 열림"></div>
+    <div class="dot" data-testid="step-dot-2" title="S2 성향 선택"></div>
+    <div class="dot" data-testid="step-dot-3" title="S3 온보딩 완료"></div>
+    <div class="dot" data-testid="step-dot-4" title="S4 게이지 확인"></div>
+    <div class="dot" data-testid="step-dot-5" title="S5 스택 체크 ≥3"></div>
+    <div class="dot" data-testid="step-dot-6" title="S6 커뮤니티 진입"></div>
+    <div class="dot" data-testid="step-dot-7" title="S7 응원 전송"></div>
+  </div>
+
+  <main>
+    <!-- 화면 1a: 인트로(카드0) -->
+    <section id="scr-intro">
+      <div class="card">
+        <h2>달력보다 느리게 늙는 법</h2>
+        <p class="dim">리버서블은 매일의 행동으로 노화 속도를 1.0 아래로 내리는 앱입니다. 나쁜 날은 복구 가능합니다 — 불안이 아니라 통제감.</p>
+      </div>
+      <div class="card">
+        <h2>시작 전에, 1분만.</h2>
+        <p class="dim">5개의 카드로 당신에게 맞는 시작점을 찾아드려요. 답은 <b style="color:var(--jade)">이 기기에만</b> 저장되고 서버로 가지 않아요.</p>
+        <div class="deckbtns">
+          <button class="go" data-testid="iq-start" onclick="startDeck()">1분 알아보기 시작</button>
+          <button data-testid="iq-skip" onclick="skipDeck()">건너뛰기</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 화면 1b: 인트로 덱 -->
+    <section id="scr-deck" class="hide">
+      <div id="deckBody"></div>
+    </section>
+
+    <!-- 화면 1c: 성향 -->
+    <section id="scr-persona" class="hide">
+      <div class="card">
+        <h2>어떤 방식이 잘 맞나요?</h2>
+        <p id="rec-note" class="hide"></p>
+        <p class="faint">성향에 따라 소셜 기능이 달라집니다</p>
+        <div class="persona">
+          <button data-testid="persona-competitive" onclick="pickPersona('competitive')"><b>🔥 경쟁</b><i>리더보드·레이드로 불태우는 편</i></button>
+          <button data-testid="persona-supportive" onclick="pickPersona('supportive')"><b>🤝 응원</b><i>버디와 서로 챙겨줄 때 오래 가는 편</i></button>
+          <button data-testid="persona-solo" onclick="pickPersona('solo')"><b>🌙 혼자</b><i>조용히 내 기록만 쌓는 편</i></button>
+        </div>
+      </div>
+      <button class="go hide" id="btn-onboard-done" data-testid="btn-onboard-done" onclick="finishOnboarding()">시작하기</button>
+    </section>
+
+    <!-- 화면 2: 홈 -->
+    <section id="scr-home" class="hide">
+      <div class="card" id="next-guide" data-testid="next-guide" style="border-color:rgba(63,224,162,.4);background:rgba(63,224,162,.06)"></div>
+      <div class="card gauge kbd" data-testid="gauge-card" role="button" tabindex="0" aria-label="노화속도 습관 점수 확인" onclick="viewGauge()">
+        <h2>노화속도 습관 점수 <span class="stub" data-testid="gauge-basis">습관 기반 · 생체 측정 아님</span></h2>
+        <div class="delta" data-testid="gauge-delta">1.00×</div>
+        <div class="pivot"><div class="fill" id="gfill" style="left:50%;right:50%"></div><div class="pin"></div></div>
+        <div class="plabels"><span>0.8 (더 느리게)</span><span>평균 1.0</span><span>1.2</span></div>
+        <p class="faint" data-testid="gauge-formula" style="margin-top:8px">체크한 습관의 <b>근거 등급에 비례</b>해 계산 — 운동(T1)이 NMN(T4)의 6배. 생체나이 측정이 아닙니다.</p>
+        <p class="faint" style="margin-top:4px">한 번 탭하면 “오늘 확인” 처리됩니다 <span class="seen hide" id="gauge-seen" data-testid="gauge-seen">✓ 확인됨</span></p>
+        <p class="faint" id="gauge-tone" data-testid="gauge-tone" style="margin-top:6px"></p>
+      </div>
+      <div class="card">
+        <h2>오늘의 스택 <span class="stub">근거순 · T1 최강 → T4 실험적</span></h2>
+        <div id="stack"></div>
+        <p class="cnt">체크 <b id="checkCount" data-testid="check-count">0</b>/3 목표 <span class="faint">— 영양제·운동만 · 처방약은 알림 전용</span></p>
+      </div>
+      <div class="card" data-testid="med-disclaimer">
+        <p class="faint">이 정보는 참고용이며 <b>의학적 조언이 아닙니다.</b> 복용·중단 전 의료진과 상의하세요. 근거 등급(T1~T5)은 공개 연구 기준이며 개인차가 있고, <b>과학 자문 검토 전 잠정</b>입니다.</p>
+      </div>
+      <div class="tools">
+        <button data-testid="btn-log" onclick="toggleLog(true)">로그</button>
+        <button data-testid="btn-export" onclick="exportLog()">JSON 내보내기</button>
+        <button data-testid="btn-reset" onclick="resetAll()">초기화</button>
+      </div>
+    </section>
+
+    <!-- 화면 3: 커뮤니티 -->
+    <section id="scr-community" class="hide">
+      <div class="card">
+        <h2>버디 <span class="stub">버디=스텁 2명</span></h2>
+        <div class="buddy">
+          <div class="ava" aria-hidden="true">🧗</div>
+          <div class="who"><b>지수</b><i>스트릭 12일 · 오늘 4/5 완료</i></div>
+          <button class="cheer" data-testid="cheer-buddy-0" onclick="cheer(0,this)">응원 보내기</button>
+        </div>
+        <div class="buddy">
+          <div class="ava" aria-hidden="true">🏃</div>
+          <div class="who"><b>하나</b><i>스트릭 5일 · 오늘 2/5 완료</i></div>
+          <button class="cheer" data-testid="cheer-buddy-1" onclick="cheer(1,this)">응원 보내기</button>
+        </div>
+      </div>
+      <div class="card"><p class="dim">응원은 버디의 행동 데이터에만 반응합니다 — 생체나이는 소셜에 흐르지 않습니다(P2).</p></div>
+    </section>
+  </main>
+
+  <nav id="nav" class="hide">
+    <!-- RV 회신코드 (0-3) — 테스터 1줄 회신, 탭 복사 -->
+    <div class="rvbar">
+      <span>결과 코드<br><span style="font-size:8px">복사해 보내주세요</span></span>
+      <code id="rvCode" data-testid="rv-code">RV|v0.7|0000000|0|0</code>
+      <button data-testid="rv-copy" onclick="copyRV()">복사</button>
+    </div>
+    <div class="navrow">
+      <button data-testid="tab-home" aria-selected="true" onclick="goTab('home',this)">홈</button>
+      <button data-testid="tab-community" aria-selected="false" onclick="goTab('community',this)">커뮤니티</button>
+    </div>
+  </nav>
+</div>
+
+<div class="ovl" id="logOvl"><div class="panel">
+  <button data-testid="btn-log-close" onclick="toggleLog(false)" style="margin-bottom:12px">닫기</button>
+  <div id="logList"></div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+/* ============================================================================
+   ReversibleCore v0.1 인라인 (reversible_core_v0.1.html과 동일 계약, schema v1)
+   prealpha v0.2 변경: (0-1) M1 정직고지 배너 · (0-3) RV 회신코드. 엔진·계측 무변경.
+   ========================================================================== */
+const SCHEMA_VERSION=1;
+/* [0-7 i18n 스캐폴딩] JS 발화 문자열 단일 정의처. en 추가=STRINGS.en 맵 1개.
+   정적 HTML 문자열은 실제 다국어 채택(베타) 시 data-i18n로 이관. */
+const LANG="ko";
+const STRINGS={ko:{
+  toast_home:"홈 진입 — 게이지를 탭해 오늘 상태를 확인하세요",
+  toast_cheer:"응원을 보냈습니다 — 관통 경로 완주!",
+  toast_reset:"초기화 완료 — 처음부터 다시",
+  toast_rv:"회신코드 복사됨 — 이 1줄을 그대로 회신하세요: ",
+  cheer_sent:"응원 보냄 ✓"
+}};
+function T(k){return (STRINGS[LANG]&&STRINGS[LANG][k])||k;}
+const APP_VERSION="prealpha v0.7";
+const RV_VER="v0.7";
+const EVENT_DATA_GRADE={app_open:"SYSTEM",onboarding_step:"BEHAVIOR",persona_branch_selected:"BEHAVIOR",
+  gauge_view:"CORE",log_action:"BEHAVIOR",streak_incremented:"BEHAVIOR",session_start:"SYSTEM",
+  experiment_assignment:"SYSTEM",experiment_exposure:"SYSTEM"};
+function uuid(){return (crypto.randomUUID)?crypto.randomUUID():
+  'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return (c==='x'?r:(r&0x3|0x8)).toString(16);});}
+function fnv1a(s){let h=0x811c9dc5;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,0x01000193);}return h>>>0;}
+function createEventLog({userId,sessionId}){
+  const events=[];const seen=new Set();let dup=0;
+  function track(name,payload={},opts={}){
+    if(!(name in EVENT_DATA_GRADE))return{accepted:false,reason:"unknown_event:"+name};
+    const id=opts.event_id||uuid();
+    if(seen.has(id)){dup++;return{accepted:false,reason:"duplicate"};}
+    seen.add(id);
+    const evt={event_id:id,event_name:name,ts:Date.now(),user_id:userId,session_id:sessionId,
+      data_grade:EVENT_DATA_GRADE[name],schema_version:SCHEMA_VERSION,payload};
+    events.push(evt);return{accepted:true,event:evt};
+  }
+  return{track,snapshot:()=>events.slice(),stats:()=>({total:events.length,dupBlocked:dup})};
+}
+
+/* ============================================================================
+   스텁 격리(순수함수 1개, 화면 표기 완료): 체크 수 → 게이지 표시값
+   ========================================================================== */
+/* [0-16] 게이지 과장 회수: 가짜 생체나이 → 습관 점수(근거 등급 비례 가중치). 생체 측정 아님. */
+const HABIT_WEIGHT={exercise:0.06,vitd3:0.03,omega3:0.03,nmn:0.01,resveratrol:0.01}; // T1=0.06 … T4=0.01
+function computeHabitPace(checked){
+  var pace=1.0;
+  for(var id in checked){ if(checked[id]) pace-=(HABIT_WEIGHT[id]||0.01); }
+  return Math.max(0.8,Math.min(1.2,pace));
+}
+
+const STACK_ITEMS=[
+  {id:"exercise",nm:"운동 20분",tier:"T1"},
+  {id:"vitd3",nm:"비타민 D3",tier:"T3"},
+  {id:"omega3",nm:"오메가3",tier:"T3"},
+  {id:"nmn",nm:"NMN 1g",tier:"T4"},
+  {id:"resveratrol",nm:"레스베라트롤 0.5g",tier:"T4"}];
+let log,userId,sessionId,state;
+/* ── [0-11·D10] 인트로 덱 — 응답 내용은 로컬 introProfile, 흐름만 onboarding_step{iq_*}(스키마 v1 무변경) ── */
+let introProfile,deckIdx,deckReveal,attitudePicked;
+const AREA_MAP={supp:["nmn","resveratrol","vitd3","omega3"],exer:["exercise"]};
+const DECK=[
+ {id:"iq_1",type:"quiz",correct:0,q:"노화의 ‘속도’는 사람마다 다르고, 행동으로 바꿀 수 있다?",
+  opts:["⭕ 그렇다","❌ 아니다","🤔 처음 듣는 얘기"],
+  reveal:"✓ 그렇다. 같은 1년을 살아도 몸은 0.6년만 늙는 사람이 있고 1.4년 늙는 사람도 있어요. 리버서블이 다루는 게 이 ‘속도’예요."},
+ {id:"iq_2",type:"quiz",correct:1,q:"다음 중 실제 ‘생체나이’ 지표로 쓰이는 것은?",
+  opts:["① 주름 개수","② DNA 메틸화 시계","③ 흰머리 비율","④ 모름/찍기"],
+  reveal:"✓ ②. 혈액·타액으로 DNA의 화학적 흔적을 읽어 몸의 나이를 추정해요. 이 앱 게이지가 장기적으로 연결될 지표예요."},
+ {id:"iq_3",type:"multi",q:"어떤 쪽이 가장 끌리세요? (여러 개 가능)",
+  opts:[["💊 보충제·스택","supp"],["🏃 운동·활동","exer"],["😴 수면·회복","sleep"],["🥗 식단·단식","diet"],["🧪 검사·데이터","test"]]},
+ {id:"iq_4",type:"single",k:"g",q:"리버서블로 뭘 하고 싶으세요?",
+  opts:[["🔁 매일 습관을 만들고 싶다","habit"],["📉 숫자로 변화를 확인","data"],["👥 같이 할 사람이 필요","together"],["👀 일단 구경하러 왔다","browse"]]},
+ {id:"iq_5",type:"practice",q:"지금은 어디쯤이세요?",
+  opts:[["🌱 아직 아무것도 — 시작하러","0"],["☕ 한두 가지는 챙긴다","1"],["📋 나만의 루틴·스택이 있다","2"]]},
+ {id:"iq_result",type:"result"}
+];
+function cnum(c){return c.id.replace("iq_","");}
+function enterCard(c){log.track("onboarding_step",{step_id:c.id,day_index:0,direction:"enter"});}
+function exitCard(c){log.track("onboarding_step",{step_id:c.id,day_index:0,direction:"exit"});}
+function startDeck(){document.getElementById("scr-intro").classList.add("hide");document.getElementById("scr-deck").classList.remove("hide");deckIdx=0;deckReveal=false;attitudePicked=false;enterCard(DECK[0]);renderDeck();}
+function skipDeck(){introProfile.skipped=true;log.track("onboarding_step",{step_id:"iq_skip",day_index:0,direction:"exit"});goPersona();}
+function deckNext(){exitCard(DECK[deckIdx]);deckIdx++;deckReveal=false;attitudePicked=false;enterCard(DECK[deckIdx]);renderDeck();}
+function finishDeck(){exitCard(DECK[deckIdx]);goPersona();}
+function pickQuiz(m){var c=DECK[deckIdx];if(m===c.correct)introProfile.k++;deckReveal=true;renderDeck();}
+function toggleArea(a){var i=introProfile.areas.indexOf(a);if(i<0)introProfile.areas.push(a);else introProfile.areas.splice(i,1);renderDeck();}
+function pickSingle(k,v){introProfile[k]=v;deckNext();}
+function pickPractice(v){introProfile.p=parseInt(v,10);attitudePicked=true;renderDeck();}
+function pickAttitude(a){introProfile.a=a;deckNext();}
+function computeArchetype(){var k=introProfile.k,p=introProfile.p||0,a;
+ if(k>=2&&p>=2)a={name:"🎯 스택 설계자",desc:"이미 루틴이 있으시군요. 기록·최적화·동료가 다음 단계예요.",persona:"competitive"};
+ else if(p>=1&&k<=1)a={name:"⚡ 감각파 실행가",desc:"이미 챙기고 계시네요. 왜 효과 있는지도 같이 알려드릴게요.",persona:"competitive"};
+ else if(k>=1&&p===0)a={name:"📚 준비된 관찰자",desc:"아는 건 많은데 몸이 안 움직였죠? 아는 걸 행동으로 바꿔드려요.",persona:"supportive"};
+ else a={name:"🌱 새싹 탐험가",desc:"지금 출발선에 선 게 최고의 타이밍이에요. 하루 3개 체크부터.",persona:"supportive"};
+ if(introProfile.g==="together")a.persona="supportive";
+ if(introProfile.a<=2)a.desc+=" 나쁜 날도 복구가 되니 안심하세요.";
+ introProfile.archetype=a;return a;}
+function renderDeck(){
+ var c=DECK[deckIdx],n=cnum(c),h="",m;
+ var dots="";for(var i=0;i<DECK.length;i++)dots+='<span class="ddot'+(i<=deckIdx?" on":"")+'"></span>';
+ if(c.type==="quiz"){
+  h='<div class="deckcard"><h2>'+c.q+'</h2><div class="opts">';
+  for(m=0;m<c.opts.length;m++)h+='<button data-testid="iq-opt-'+n+'-'+m+'" data-act="quiz" data-m="'+m+'"'+(deckReveal?" disabled":"")+'>'+c.opts[m]+'</button>';
+  h+='</div>'+(deckReveal?'<div class="reveal">'+c.reveal+'</div><button class="go" data-testid="iq-next-'+n+'" data-act="next">다음</button>':"")+'</div>';
+ }else if(c.type==="multi"){
+  h='<div class="deckcard"><h2>'+c.q+'</h2><div class="opts">';
+  for(m=0;m<c.opts.length;m++)h+='<button class="'+(introProfile.areas.includes(c.opts[m][1])?"sel":"")+'" data-testid="iq-opt-'+n+'-'+m+'" data-act="area" data-v="'+c.opts[m][1]+'">'+c.opts[m][0]+'</button>';
+  h+='</div><button class="go" data-testid="iq-next-'+n+'" data-act="next">다음</button></div>';
+ }else if(c.type==="single"){
+  h='<div class="deckcard"><h2>'+c.q+'</h2><div class="opts">';
+  for(m=0;m<c.opts.length;m++)h+='<button data-testid="iq-opt-'+n+'-'+m+'" data-act="single" data-k="'+c.k+'" data-v="'+c.opts[m][1]+'">'+c.opts[m][0]+'</button>';
+  h+='</div></div>';
+ }else if(c.type==="practice"){
+  h='<div class="deckcard"><h2>'+c.q+'</h2><div class="opts">';
+  for(m=0;m<c.opts.length;m++)h+='<button data-testid="iq-opt-'+n+'-'+m+'" data-act="practice" data-v="'+c.opts[m][1]+'"'+(attitudePicked?" disabled":"")+'>'+c.opts[m][0]+'</button>';
+  h+='</div>'+(attitudePicked?'<p class="faint" style="margin-top:10px">노화에 대한 지금 기분은?</p><div class="atts"><button data-testid="iq-att-1" data-act="att" data-v="1">😟</button><button data-testid="iq-att-2" data-act="att" data-v="2">🙁</button><button data-testid="iq-att-3" data-act="att" data-v="3">😐</button><button data-testid="iq-att-4" data-act="att" data-v="4">🙂</button><button data-testid="iq-att-5" data-act="att" data-v="5">💪</button></div>':"")+'</div>';
+ }else if(c.type==="result"){
+  var a=computeArchetype();
+  h='<div class="deckcard" data-testid="iq-result"><p class="faint">당신의 시작점</p><h2 style="font-size:20px">'+a.name+'</h2><p class="dim">'+a.desc+'</p><button class="go" data-testid="iq-result-continue" data-act="continue" style="margin-top:12px">성향 고르러 가기</button></div>';
+ }
+ document.getElementById("deckBody").innerHTML='<div class="ddots">'+dots+'</div>'+h;
+}
+function goPersona(){
+ document.getElementById("scr-intro").classList.add("hide");document.getElementById("scr-deck").classList.add("hide");
+ document.getElementById("scr-persona").classList.remove("hide");
+ if(introProfile.archetype){
+  var rec=introProfile.archetype.persona,b=document.querySelector('[data-testid="persona-'+rec+'"]');
+  if(b){b.classList.add("recommend");if(!b.querySelector(".recbadge"))b.querySelector("b").insertAdjacentHTML("beforeend",'<span class="recbadge">추천</span>');}
+  var note=document.getElementById("rec-note");note.textContent="‘"+introProfile.archetype.name+"’엔 이 방식이 잘 맞아요";note.classList.remove("hide");
+ }
+}
+function orderedStack(){
+ var tierRank={T1:1,T2:2,T3:3,T4:4,T5:5};
+ var pri={};if(introProfile&&introProfile.areas)introProfile.areas.forEach(function(a){(AREA_MAP[a]||[]).forEach(function(id){pri[id]=1;});});
+ return STACK_ITEMS.slice().sort(function(x,y){
+   var tr=(tierRank[x.tier]||9)-(tierRank[y.tier]||9); // 근거 등급 1차(운동 T1 항상 상단)
+   if(tr!==0)return tr;
+   return (pri[y.id]?1:0)-(pri[x.id]?1:0);           // 관심 2차(동일 등급 내에서만)
+ });
+}
+function applyPersonalization(){renderStack();var tone=document.getElementById("gauge-tone");
+ if(tone&&introProfile.archetype)tone.textContent=introProfile.a<=2?"나쁜 날은 복구할 수 있어요 — 통제감이 목표예요.":"좋아요, 가속해봅시다 — 스택을 채울수록 델타가 더 내려가요.";}
+function boot(){
+  userId="u_"+fnv1a(uuid()).toString(36);
+  sessionId="s_"+Date.now().toString(36);
+  log=createEventLog({userId,sessionId});
+  state={persona:null,onboarded:false,gaugeSeen:false,checked:{},cheered:{},steps:{}};
+  document.querySelectorAll(".dot").forEach(d=>d.classList.remove("on"));
+  log.track("session_start",{});
+  log.track("app_open",{cold_start:true}); /*STEP:1*/ markStep(1);
+  introProfile={k:0,p:null,areas:[],g:null,a:3,archetype:null,skipped:false};deckIdx=0;deckReveal=false;attitudePicked=false;
+  document.getElementById("scr-intro").classList.remove("hide");
+  document.getElementById("scr-deck").classList.add("hide");
+  document.getElementById("scr-persona").classList.add("hide");
+  document.getElementById("scr-home").classList.add("hide");
+  document.getElementById("scr-community").classList.add("hide");
+  document.getElementById("nav").classList.add("hide");
+  document.getElementById("btn-onboard-done").classList.add("hide");
+  document.getElementById("rec-note").classList.add("hide");
+  document.querySelectorAll(".persona button").forEach(function(b){b.classList.remove("recommend");});
+  document.querySelectorAll(".recbadge").forEach(function(e){e.remove();});
+  var gt=document.getElementById("gauge-tone");if(gt)gt.textContent="";
+  document.getElementById("gauge-seen").classList.add("hide");
+  document.querySelectorAll(".persona button").forEach(b=>b.style.borderColor="");
+  const home=document.querySelector('[data-testid="tab-home"]'),com=document.querySelector('[data-testid="tab-community"]');
+  home.setAttribute("aria-selected","true");com.setAttribute("aria-selected","false");
+  renderStack();updateCount();renderRV();
+}
+function markStep(n){
+  if(state.steps[n])return;
+  state.steps[n]={enter:Date.now()};state.steps[n].exit=Date.now();
+  const d=document.querySelector('[data-testid="step-dot-'+n+'"]');if(d)d.classList.add("on");
+  renderRV();
+}
+function pickPersona(p){
+  state.persona=p;
+  log.track("persona_branch_selected",{persona:p}); /*STEP:2*/ markStep(2);
+  document.querySelectorAll(".persona button").forEach(b=>b.style.borderColor="");
+  document.querySelector('[data-testid="persona-'+p+'"]').style.borderColor="var(--jade)";
+  document.getElementById("btn-onboard-done").classList.remove("hide");
+}
+function finishOnboarding(){
+  if(!state.persona)return;
+  state.onboarded=true;
+  log.track("onboarding_step",{step_id:"prealpha_onboarding",day_index:0,direction:"exit"}); /*STEP:3*/ markStep(3);
+  document.getElementById("scr-intro").classList.add("hide");
+  document.getElementById("scr-deck").classList.add("hide");
+  document.getElementById("scr-persona").classList.add("hide");
+  document.getElementById("scr-home").classList.remove("hide");
+  document.getElementById("nav").classList.remove("hide");
+  applyPersonalization();renderGuide();
+  toast(T("toast_home"));
+}
+function viewGauge(){
+  if(!state.onboarded)return;
+  state.gaugeSeen=true;
+  log.track("gauge_view",{core_ref_id:"core_stub_"+sessionId,pivot_side:"below"}); /*STEP:4*/ markStep(4);
+  document.getElementById("gauge-seen").classList.remove("hide");renderGuide();
+}
+function renderStack(){
+  document.getElementById("stack").innerHTML=orderedStack().map((it,i)=>
+    '<div class="item kbd'+(state.checked[it.id]?" done":"")+'" data-testid="stack-item-'+i+'" role="button" tabindex="0" aria-pressed="'+(!!state.checked[it.id])+'" aria-label="'+it.nm+' 체크" onclick="toggleItem(\''+it.id+'\','+i+')">'+
+    '<div class="box">'+(state.checked[it.id]?"✓":"")+'</div><div class="nm">'+it.nm+'<span class="tbadge t-'+it.tier+'">'+it.tier+'</span></div></div>').join("");
+}
+function toggleItem(id,i){
+  state.checked[id]=!state.checked[id];
+  log.track("log_action",{category:id,completed:!!state.checked[id]});
+  const n=Object.values(state.checked).filter(Boolean).length;
+  if(n>=3) {/*STEP:5*/ markStep(5);}
+  renderStack();updateCount();renderRV();renderGuide();
+}
+function updateCount(){
+  const n=Object.values(state.checked).filter(Boolean).length;
+  document.getElementById("checkCount").textContent=n;
+  const pace=computeHabitPace(state.checked);
+  document.querySelector('[data-testid="gauge-delta"]').textContent=pace.toFixed(2)+"×";
+  document.getElementById("gfill").style.left=((pace-0.8)/0.4*100)+"%";
+}
+function goCommunity(){var b=document.querySelector('[data-testid="tab-community"]');goTab('community',b);}
+function renderGuide(){
+  var el=document.getElementById("next-guide");if(!el)return;var n=Object.values(state.checked).filter(Boolean).length;var h;
+  if(!state.gaugeSeen)h='<b style="color:var(--jade)">다음 할 일 ①</b> 위 <b>점수 카드를 한 번 탭</b>해서 오늘 상태를 확인하세요.';
+  else if(n<3)h='<b style="color:var(--jade)">다음 할 일 ②</b> 아래 <b>‘오늘의 스택’에서 3개</b>를 체크하세요. (지금 '+n+'/3)';
+  else if(!state.cheered[0]&&!state.cheered[1])h='<b style="color:var(--jade)">다음 할 일 ③</b> 거의 끝났어요!<br><button class="go" data-testid="guide-goto-community" onclick="goCommunity()" style="margin-top:8px">커뮤니티에서 버디 응원하고 마치기 →</button>';
+  else h='<b style="color:var(--jade)">🎉 오늘 완료!</b> 잘하셨어요 — 이게 하루 루틴이에요.';
+  el.innerHTML=h;
+}
+function goTab(t,btn){
+  document.querySelectorAll(".navrow button").forEach(b=>b.setAttribute("aria-selected","false"));
+  btn.setAttribute("aria-selected","true");
+  document.getElementById("scr-home").classList.toggle("hide",t!=="home");
+  document.getElementById("scr-community").classList.toggle("hide",t!=="community");
+  if(t==="community"){/*STEP:6*/ markStep(6);} // 계측 갭: screen_view 스키마 부재 → DOM 앵커(aria-selected)
+}
+function cheer(idx,btn){
+  if(state.cheered[idx])return;
+  state.cheered[idx]=true;
+  // 가정 G1: 응원=log_action(category:'buddy_cheer'). v1.1에서 buddy_cheer_sent 신설 시 이 1곳 치환
+  log.track("log_action",{category:"buddy_cheer",completed:true}); /*STEP:7*/ markStep(7);
+  btn.textContent=T("cheer_sent");btn.classList.add("sent");
+  toast(T("toast_cheer"));renderGuide();
+}
+/* ── RV 회신코드 (0-3): RV|버전|스텝비트맵(7)|이벤트수|체크섬 ── */
+function stepBitmap(){let b="";for(let n=1;n<=7;n++)b+=state.steps[n]?"1":"0";return b;}
+function rvChecksum(){return fnv1a(log.snapshot().map(e=>e.event_name).join("|")).toString(36).slice(0,6);}
+function computeRV(){return "RV|"+RV_VER+"|"+stepBitmap()+"|"+log.snapshot().length+"|"+rvChecksum();}
+function renderRV(){const el=document.getElementById("rvCode");if(el)el.textContent=computeRV();}
+function copyRV(){
+  const code=computeRV();
+  const done=()=>toast(T("toast_rv")+code);
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(code).then(done).catch(done);}
+  else{done();}
+}
+function toggleLog(on){
+  const o=document.getElementById("logOvl");o.classList.toggle("on",on);
+  if(on){document.getElementById("logList").innerHTML=log.snapshot().slice(-60).reverse().map(e=>
+    '<div class="ev"><span class="g '+e.data_grade+'">'+e.data_grade+'</span><span>'+e.event_name+'</span>'+
+    '<span style="color:var(--faint);word-break:break-all">'+JSON.stringify(e.payload)+'</span></div>').join("");}
+}
+function exportLog(){
+  const blob=new Blob([JSON.stringify({schema_version:SCHEMA_VERSION,app_version:APP_VERSION,rv:computeRV(),steps:state.steps,events:log.snapshot()},null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download="reversible_prealpha_log_"+sessionId+".json";a.click();URL.revokeObjectURL(a.href);
+}
+function resetAll(){boot();toast(T("toast_reset"));}
+let toastTimer;
+function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("on");
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("on"),2600);}
+// L1/E1 하네스 관찰 창구(우회 아님 — 조작은 전부 UI로, 여기선 읽기만)
+window.__rvs={snapshot:()=>log.snapshot(),stats:()=>log.stats(),steps:()=>state.steps,rv:()=>computeRV(),intro:()=>introProfile,version:APP_VERSION};
+document.addEventListener("keydown",function(e){
+  if((e.key==="Enter"||e.key===" ")&&e.target&&e.target.classList&&e.target.classList.contains("kbd")){e.preventDefault();e.target.click();}
+});
+document.getElementById("deckBody").addEventListener("click",function(e){
+ var b=e.target.closest&&e.target.closest("button");if(!b)return;var act=b.getAttribute("data-act");if(!act)return;
+ if(act==="quiz")pickQuiz(parseInt(b.getAttribute("data-m"),10));
+ else if(act==="next")deckNext();
+ else if(act==="area")toggleArea(b.getAttribute("data-v"));
+ else if(act==="single")pickSingle(b.getAttribute("data-k"),b.getAttribute("data-v"));
+ else if(act==="practice")pickPractice(b.getAttribute("data-v"));
+ else if(act==="att")pickAttitude(parseInt(b.getAttribute("data-v"),10));
+ else if(act==="continue")finishDeck();
+});
+boot();
+</script>
+</body>
+</html>
