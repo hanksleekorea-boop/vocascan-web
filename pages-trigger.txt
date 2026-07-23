@@ -1,2 +1,0 @@
-pages build trigger
-commit: forcing rebuild to deploy reversible.html
