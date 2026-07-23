@@ -51,12 +51,12 @@
     opacity:0;transform:translateY(4px) scale(.9);transition:opacity .3s,transform .3s;white-space:nowrap}
   .mascot-bubble.show{opacity:1;transform:translateY(0) scale(1)}
   .flamepulse{display:inline-block;animation:flamePulse 1.3s ease-in-out infinite}
-  .langbtn{flex:1;padding:8px 4px;font-size:12px;font-weight:700;font-family:inherit;
-    background:var(--panel);border:1px solid var(--line);color:var(--mute);border-radius:10px;cursor:pointer}
+  .langbtn{flex:1;min-height:44px;padding:8px 4px;font-size:12px;font-weight:700;font-family:inherit;
+    background:var(--panel);border:1px solid var(--line);color:var(--mute);border-radius:10px;cursor:pointer;touch-action:manipulation}
   .langbtn.on{background:var(--accent);color:#1a1f28;border-color:var(--accent)}
   #scr-onboard{display:none;position:relative;flex-direction:column;height:100%;padding:20px}
   #scr-onboard.active{display:flex}
-  .obd-skip{position:absolute;top:16px;right:20px;font-size:13px;color:var(--mute);cursor:pointer;z-index:5;padding:6px 10px;border:0;background:transparent;font-family:inherit}
+  .obd-skip{position:absolute;top:16px;right:20px;min-width:44px;min-height:44px;font-size:13px;color:var(--mute);cursor:pointer;z-index:5;padding:6px 10px;border:0;background:transparent;font-family:inherit;touch-action:manipulation}
   .obd-wrap{flex:1;position:relative;overflow:hidden}
   .obd-slide{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
     text-align:center;padding:0 12px;opacity:0;transform:translateX(30px);transition:opacity .35s,transform .35s;pointer-events:none}
@@ -259,7 +259,8 @@
   #sessProg{min-width:78px;margin-left:auto}
   .result-confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none}
   .ipa{position:relative;z-index:2;font-size:14px;color:#7a8aa8;letter-spacing:.5px;margin-top:6px;font-family:Georgia,serif}
-  #btnTut{background:var(--panel);border:1px solid var(--line);color:var(--mute);border-radius:50%;width:26px;height:26px;font-size:13px;cursor:pointer;line-height:1;flex-shrink:0}
+  #btnTut{background:var(--panel);border:1px solid var(--line);color:var(--mute);border-radius:50%;width:44px;height:44px;font-size:13px;cursor:pointer;line-height:1;flex-shrink:0;touch-action:manipulation}
+  .support-btn{min-height:44px;touch-action:manipulation}
   .obd-wrap{touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:grab}
   #scr-setup0{display:none}
   #scr-setup0.active{display:flex}
@@ -605,7 +606,7 @@ let state=readStoredJson("voca_v1",null);
 if(!state) state={level:null,trust:1.0,words:{},streak:0,lastDay:null,total:0,latencies:[]};
 function save(){storageSet("voca_v1",JSON.stringify(state));}
 const APP_VER="v2.3";
-const BUILD_ID="2026-07-19.3"; /* F146: 90일 목표팩 카탈로그·권한 스키마. 내용 바뀔 때마다 이 값도 반드시 갱신 */
+const BUILD_ID="2026-07-23.1"; /* F146: 90일 목표팩 카탈로그·권한 스키마. 내용 바뀔 때마다 이 값도 반드시 갱신 */
 const MONETIZATION_OBSERVE=true;
 const PRO_PRICES={
   ko:{monthly:"월 4,900원",yearly:"연 39,000원",goal90:"90일 9,900원"},
@@ -1841,10 +1842,10 @@ function renderHome(){
       '<div class="go">'+(n?t('start2'):t('empty'))+'</div></div>';
   }).join("");
   const savedCount=savedWordEntries("").length;
-  $("#packList").insertAdjacentHTML('beforeend','<div style="text-align:center;margin:12px 0 4px"><button id="btnSavedManager" data-testid="btn-open-saved-manager" style="background:none;border:1px solid var(--accent);color:var(--accent);border-radius:12px;padding:10px 16px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">⭐ '+t("savedManager")+' · '+savedCount+t("cnt")+'</button></div>');
+  $("#packList").insertAdjacentHTML('beforeend','<div style="text-align:center;margin:12px 0 4px"><button class="support-btn" id="btnSavedManager" data-testid="btn-open-saved-manager" style="background:none;border:1px solid var(--accent);color:var(--accent);border-radius:12px;padding:10px 16px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">⭐ '+t("savedManager")+' · '+savedCount+t("cnt")+'</button></div>');
   const savedManagerEl=$("#btnSavedManager");if(savedManagerEl)savedManagerEl.onclick=()=>{SFX.tap();show("saved");};
   const pwaLabel={ko:"홈 화면에 추가",th:"เพิ่มไปหน้าจอหลัก",en:"Add to Home Screen"}[state.lang]||"Add to Home Screen";
-  $("#packList").insertAdjacentHTML('beforeend','<div style="text-align:center;margin:8px 0 4px"><button id="btnPwaHelp" data-testid="btn-add-home-screen" style="background:none;border:1px solid var(--line);color:var(--mute);border-radius:12px;padding:9px 14px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">📲 '+pwaLabel+'</button></div>');
+  $("#packList").insertAdjacentHTML('beforeend','<div style="text-align:center;margin:8px 0 4px"><button class="support-btn" id="btnPwaHelp" data-testid="btn-add-home-screen" style="background:none;border:1px solid var(--line);color:var(--mute);border-radius:12px;padding:9px 14px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">📲 '+pwaLabel+'</button></div>');
   const pwaHelpEl=$("#btnPwaHelp");if(pwaHelpEl)pwaHelpEl.onclick=()=>{SFX.tap();window.dispatchEvent(new CustomEvent("vocascan:pwahelp"));};
   const promoEl=$("#promoPack");
   if(promoEl)promoEl.onclick=startPromo;
@@ -1889,17 +1890,17 @@ function renderHome(){
   if(lockEl)lockEl.onclick=()=>{registerProInterest("ai_lock");toast(t("aiLockToast"));};
   /* 레벨 재측정(홈에서 첫 스캔 재실행) — 학습기록·단어장 유지, state.level만 재계산 */
   const retestHtml='<div style="text-align:center;margin:22px 0 8px">'+
-    '<button id="btnRetest" data-testid="btn-retest" style="background:none;border:1px solid var(--line);color:var(--mute);'+
+    '<button class="support-btn" id="btnRetest" data-testid="btn-retest" style="background:none;border:1px solid var(--line);color:var(--mute);'+
     'border-radius:12px;padding:10px 18px;font-family:inherit;font-size:12px;cursor:pointer">'+t('retest')+'</button></div>';
   $("#packList").insertAdjacentHTML('beforeend',retestHtml);
   const retestEl=$("#btnRetest");
   if(retestEl)retestEl.onclick=()=>{if(confirm(t('retestConfirm')))startSession("scan",[]);};
   /* 튜토리얼 다시보기(F15, 07-13 사용자 요청) — 온보딩 4장 스와이프 재열람. state.onboarded는 건드리지 않음(이미 true 유지) — 리셋 아니라 순수 재열람이라 완료조건 스텝 순서·계측 계약 영향 없음(evlog 신규 이벤트 없음) */
   const tutReplayHtml='<div style="text-align:center;margin:6px 0 8px;display:flex;gap:8px;justify-content:center">'+
-    '<button id="btnTutReplay" data-testid="btn-tut-replay" style="background:none;border:1px solid var(--line);color:var(--mute);'+
+    '<button class="support-btn" id="btnTutReplay" data-testid="btn-tut-replay" style="background:none;border:1px solid var(--line);color:var(--mute);'+
     'border-radius:12px;padding:10px 14px;font-family:inherit;font-size:12px;cursor:pointer">'+t('tutReplay')+'</button>'+
     /* F20: 홈에서도 간단(온보딩 재열람)/상세(튜토리얼) 선택 가능하게 — 상세 버튼 추가 */
-    '<button id="btnTutDetail" data-testid="btn-tut-detail" style="background:none;border:1px solid var(--line);color:var(--mute);'+
+    '<button class="support-btn" id="btnTutDetail" data-testid="btn-tut-detail" style="background:none;border:1px solid var(--line);color:var(--mute);'+
     'border-radius:12px;padding:10px 14px;font-family:inherit;font-size:12px;cursor:pointer">'+t('tutDetailLink')+'</button></div>';
   $("#packList").insertAdjacentHTML('beforeend',tutReplayHtml);
   const tutReplayEl=$("#btnTutReplay");
@@ -1908,7 +1909,7 @@ function renderHome(){
   if(tutDetailEl)tutDetailEl.onclick=()=>openTutorial(0,"home");
   /* 앱 공유하기(F22, 07-13 사용자 요청 "앱셰어버튼") — Web Share API 우선 사용, 미지원 환경(데스크톱 크롬 등)은 copyText()로 클립보드 복사 폴백. 스캔 완료 전엔 초대문구, 완료 후엔 실제 결과(한국기준 학년+상위%, F16 로직 재사용)를 공유문구에 반영 */
   const shareHtml='<div style="text-align:center;margin:6px 0 14px">'+
-    '<button id="btnAppShare" data-testid="btn-app-share" style="background:none;border:1px solid var(--accent);color:var(--accent);'+
+    '<button class="support-btn" id="btnAppShare" data-testid="btn-app-share" style="background:none;border:1px solid var(--accent);color:var(--accent);'+
     'border-radius:12px;padding:10px 18px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">📤 '+t('shareBtn')+'</button></div>';
   $("#packList").insertAdjacentHTML('beforeend',shareHtml);
   const shareEl=$("#btnAppShare");
@@ -1918,11 +1919,11 @@ function renderHome(){
     const shText=(state.level)
       ?t('shareResultText').replace('{grade}',gradeLabel(state.identity)).replace('{top}',(100-pct(state.level)))
       :t('shareInviteText');
-    const shareText=shText+'\n'+PUBLIC_APP_URL;
+    const shareText=shText;
     if(navigator.share){
       navigator.share({title:shTitle,text:shareText,url:PUBLIC_APP_URL}).catch(()=>{});
     }else{
-      copyText(shTitle+'\n'+shareText,()=>toast(t('shareCopied')));
+      copyText(shTitle+'\n'+shareText+'\n'+PUBLIC_APP_URL,()=>toast(t('shareCopied')));
     }
   };
 }
