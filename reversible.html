@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Reversible · prealpha v0.11</title>
+<title>Reversible · prealpha v0.12</title>
 <style>
   :root{
     --ink:#0B0E11; --card:#141A20; --card2:#171E25; --jade:#3FE0A2; --amber:#F5B14C;
@@ -133,7 +133,7 @@
   <div class="hd">
     <div class="mark"><span class="up"></span><span class="dn"></span></div>
     <h1>리버서블</h1>
-    <div class="badge">prealpha v0.11</div>
+    <div class="badge">prealpha v0.12</div>
   </div>
   <!-- M1 데이터 지속성 정직 고지 (0-1) — 상시 표시, 무손실·무정지·정직고지 3결과 중 정직고지 충족 -->
   <div class="notice" data-testid="persist-notice" role="note">
@@ -236,8 +236,8 @@
   <nav id="nav" class="hide">
     <!-- RV 회신코드 (0-3) — 테스터 1줄 회신, 탭 복사 -->
     <div class="rvbar">
-      <span>결과 코드<br><span style="font-size:8px">복사해 보내주세요</span></span>
-      <code id="rvCode" data-testid="rv-code">RV|v0.11|0000000|0|0|intro</code>
+      <span id="rv-label" data-testid="rv-label" style="min-width:74px">결과 코드<br><span style="font-size:8px">복사해 보내주세요</span></span>
+      <code id="rvCode" data-testid="rv-code">RV|v0.12|0000000|0|0|intro</code>
       <button data-testid="rv-copy" onclick="copyRV()">복사</button>
     </div>
     <div class="navrow">
@@ -271,8 +271,8 @@ const STRINGS={ko:{
   cheer_sent:"응원 보냄 ✓"
 }};
 function T(k){return (STRINGS[LANG]&&STRINGS[LANG][k])||k;}
-const APP_VERSION="prealpha v0.11";
-const RV_VER="v0.11";
+const APP_VERSION="prealpha v0.12";
+const RV_VER="v0.12";
 const EVENT_DATA_GRADE={app_open:"SYSTEM",onboarding_step:"BEHAVIOR",persona_branch_selected:"BEHAVIOR",
   gauge_view:"CORE",log_action:"BEHAVIOR",streak_incremented:"BEHAVIOR",session_start:"SYSTEM",
   experiment_assignment:"SYSTEM",experiment_exposure:"SYSTEM"};
@@ -512,7 +512,16 @@ function rvChecksum(){return fnv1a(log.snapshot().map(e=>e.event_name).join("|")
 /* [v0.9·WS-B] 드롭 태그 — 완주면 done, 미완주면 현재화면@마지막탭(개인정보 없음). 실패 테스터 이탈지점을 회신 1줄로 원격 판정. */
 function dropTag(){return (stepBitmap()==="1111111")?"done":((state.currentScreen||"intro")+"@"+(state.lastTap||"none"));}
 function computeRV(){return "RV|"+RV_VER+"|"+stepBitmap()+"|"+log.snapshot().length+"|"+rvChecksum()+"|"+dropTag();}
-function renderRV(){const el=document.getElementById("rvCode");if(el)el.textContent=computeRV();}
+function renderRV(){
+  const el=document.getElementById("rvCode");if(el)el.textContent=computeRV();
+  // [v0.12·경로수정] 복사 바에 완주/미완주 상태 명시 — 제3자 4명 중 3명이 완주 전 조기복사(테스트 스캐폴드 아티팩트) 대응
+  const lab=document.getElementById("rv-label");if(!lab||typeof state!=="object"||!state)return;
+  const complete=stepBitmap()==="1111111";
+  const n=Object.values(state.checked).filter(Boolean).length;
+  const cheered=!!(state.cheered[0]||state.cheered[1]);
+  if(complete){lab.innerHTML='<b style="color:var(--jade)">✅ 완주 완료</b><br><span style="font-size:8px">지금 복사해 보내주세요</span>';}
+  else{lab.innerHTML='<b style="color:var(--amber)">⚠ 아직 미완주</b><br><span style="font-size:8px;color:var(--amber)">습관 '+n+'/3'+(cheered?'':' · 응원 남음')+'</span>';}
+}
 function copyRV(){
   const code=computeRV();
   const complete=stepBitmap()==="1111111";
