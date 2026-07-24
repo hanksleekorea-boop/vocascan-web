@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Reversible · prealpha v0.16</title>
+<title>Reversible · prealpha v0.17</title>
 <style>
   :root{
     --ink:#0B0E11; --card:#141A20; --card2:#171E25; --jade:#3FE0A2; --amber:#F5B14C;
@@ -135,7 +135,7 @@
   <div class="hd">
     <div class="mark"><span class="up"></span><span class="dn"></span></div>
     <h1>리버서블</h1>
-    <div class="badge">prealpha v0.16</div>
+    <div class="badge">prealpha v0.17</div>
   </div>
   <!-- M1 데이터 지속성 정직 고지 (0-1) — 상시 표시, 무손실·무정지·정직고지 3결과 중 정직고지 충족 -->
   <div class="notice" data-testid="persist-notice" role="note">
@@ -260,7 +260,7 @@
     <!-- RV 회신코드 (0-3) — 테스터 1줄 회신, 탭 복사 -->
     <div class="rvbar">
       <span id="rv-label" data-testid="rv-label" style="min-width:74px">결과 코드<br><span style="font-size:8px">복사해 보내주세요</span></span>
-      <code id="rvCode" data-testid="rv-code">RV|v0.16|0000000|0|0|intro|000000</code>
+      <code id="rvCode" data-testid="rv-code">RV|v0.17|0000000|0|0|intro|000000</code>
       <button data-testid="rv-copy" onclick="copyRV()">복사</button>
     </div>
     <div class="navrow">
@@ -296,8 +296,8 @@ const STRINGS={ko:{
   cheer_sent:"응원 보냄 ✓"
 }};
 function T(k){return (STRINGS[LANG]&&STRINGS[LANG][k])||k;}
-const APP_VERSION="prealpha v0.16";
-const RV_VER="v0.16";
+const APP_VERSION="prealpha v0.17";
+const RV_VER="v0.17";
 /* [v0.13·무결성] 세션 고유 표식 — 실행마다 랜덤. 완주마다 코드가 달라져 재제출·편집 감지 가능. */
 function genNonce(){var r;try{r=crypto.getRandomValues(new Uint32Array(1))[0];}catch(e){r=Math.floor(Math.random()*4294967296);}return r.toString(36).slice(0,7);}
 const EVENT_DATA_GRADE={app_open:"SYSTEM",onboarding_step:"BEHAVIOR",persona_branch_selected:"BEHAVIOR",
@@ -620,11 +620,26 @@ const KDATA=[
   hook:"그래서 이 앱에 ‘응원’ 기능이 있어요.",src:"대규모 분석"},
  {q:"‘소량의 술은 건강에 좋다’?",opts:["맞다","대체로 틀렸다","많을수록 좋다","술마다 다르다"],right:1,t:"T1",ans:"대체로 틀림",
   plain:"‘적당한 술은 몸에 좋다’는 옛말은 최근 연구로 대부분 뒤집혔어요. 지금은 ‘안전한 최소량은 없다’는 견해가 우세해요.",
-  hook:"몸엔 술이 적을수록 좋아요.",src:"WHO"}
+  hook:"몸엔 술이 적을수록 좋아요.",src:"WHO"},
+ {q:"나이 들수록 가장 먼저 지켜야 할 몸은?",opts:["근육","체중","유연성","키"],right:0,t:"T1",ans:"근육",
+  plain:"근육은 40대부터 가만있으면 매년 줄어요. 근육이 있으면 넘어짐이 줄고, 혈당 조절과 활력이 좋아져요. 무거운 걸 드는 운동(근력운동)이 특히 근육을 지켜요.",
+  hook:"걷기만으론 근육이 다 안 지켜져요 — 힘쓰는 운동도 필요해요.",src:"노인의학 연구"},
+ {q:"운동을 규칙적으로 하면, 하루 종일 앉아있어도 괜찮을까?",opts:["괜찮다","앉아있는 것 자체가 따로 위험","서있으면 해결","상관없다"],right:1,t:"T2",ans:"따로 위험",
+  plain:"운동을 잘 해도, 하루 종일 앉아만 있는 것 자체가 별개로 몸에 안 좋아요. 30분~1시간마다 잠깐 일어나 움직이는 게 좋아요.",
+  hook:"‘오래 앉아있기는 새로운 담배’라는 말이 있어요.",src:"대규모 관찰연구"},
+ {q:"밤에 잠을 잘 자려면 아침에 뭘 하면 좋을까?",opts:["커피 마시기","밝은 햇빛 보기","폰 보기","더 자기"],right:1,t:"T2",ans:"아침 햇빛",
+  plain:"아침에 밝은 빛(특히 햇빛)을 보면 몸속 시계가 맞춰져서, 그날 밤 잠이 더 잘 와요. 잠은 사실 아침에 준비돼요.",
+  hook:"잠이 안 오면 밤이 아니라 아침을 바꿔보세요.",src:"생체시계 연구"},
+ {q:"같은 음식이라도 언제 먹으면 몸에 더 안 좋을까?",opts:["아침","점심","자기 직전 밤","차이 없다"],right:2,t:"T2",ans:"자기 직전",
+  plain:"자기 직전에 먹으면 소화·혈당·수면이 다 흐트러져요. 되도록 잠들기 2~3시간 전에는 그만 먹는 게 좋아요.",
+  hook:"‘무엇을’ 먹느냐만큼 ‘언제’ 먹느냐도 중요해요.",src:"대사·수면 연구"},
+ {q:"오래 지속되는 스트레스는 몸을 어떻게 할까?",opts:["단련시킨다","늙게 만든다","영향 없다","살을 뺀다"],right:1,t:"T2",ans:"늙게 만듦",
+  plain:"짧은 스트레스는 괜찮아요. 하지만 오래 켜져 있는 스트레스는 염증과 스트레스 호르몬을 통해 몸을 늙게 해요. 깊은 호흡·산책·사람과의 대화가 이걸 낮춰줘요.",
+  hook:"스트레스 자체보다 ‘오래 켜져 있는 것’이 문제예요.",src:"스트레스 연구"}
 ];
 let kIdx=0,kAnswered=false;
 function kRender(){var el=document.getElementById("klist");if(!el)return;
- if(kIdx>=KDATA.length){el.innerHTML='<div class="card" data-testid="know-done"><h2 style="font-size:15px">🎉 오늘 배운 것</h2><p class="dim" style="font-size:12.5px">방금 5가지는 전부 <b style="color:var(--jade)">근거가 가장 강한 습관</b>이에요. 핵심 한 줄: <b style="color:var(--jade)">가장 확실한 건 알약이 아니라 습관.</b></p><button class="go" data-testid="know-restart" style="margin-top:10px" onclick="kReset()">다시 보기</button></div>';return;}
+ if(kIdx>=KDATA.length){el.innerHTML='<div class="card" data-testid="know-done"><h2 style="font-size:15px">🎉 오늘 배운 것</h2><p class="dim" style="font-size:12.5px">방금 '+KDATA.length+'가지는 전부 <b style="color:var(--jade)">근거가 가장 강한 습관</b>이에요. 핵심 한 줄: <b style="color:var(--jade)">가장 확실한 건 알약이 아니라 습관.</b></p><button class="go" data-testid="know-restart" style="margin-top:10px" onclick="kReset()">다시 보기</button></div>';return;}
  var k=KDATA[kIdx],h='<div class="card" data-testid="know-card-'+kIdx+'"><p class="faint">'+(kIdx+1)+' / '+KDATA.length+' · 먼저 맞혀보세요</p><h2 style="font-size:15px">'+k.q+'</h2><div class="opts">';
  for(var m=0;m<k.opts.length;m++)h+='<button data-testid="know-opt-'+kIdx+'-'+m+'"'+(kAnswered?' disabled':'')+' onclick="kPick('+m+')">'+k.opts[m]+'</button>';
  h+='</div>';
