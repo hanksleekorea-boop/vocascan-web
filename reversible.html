@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Reversible · prealpha v0.13</title>
+<title>Reversible · prealpha v0.14</title>
 <style>
   :root{
     --ink:#0B0E11; --card:#141A20; --card2:#171E25; --jade:#3FE0A2; --amber:#F5B14C;
@@ -133,7 +133,7 @@
   <div class="hd">
     <div class="mark"><span class="up"></span><span class="dn"></span></div>
     <h1>리버서블</h1>
-    <div class="badge">prealpha v0.13</div>
+    <div class="badge">prealpha v0.14</div>
   </div>
   <!-- M1 데이터 지속성 정직 고지 (0-1) — 상시 표시, 무손실·무정지·정직고지 3결과 중 정직고지 충족 -->
   <div class="notice" data-testid="persist-notice" role="note">
@@ -231,18 +231,31 @@
       </div>
       <div class="card"><p class="dim">응원은 버디의 행동 데이터에만 반응합니다 — 생체나이는 소셜에 흐르지 않습니다(P2).</p></div>
     </section>
+
+    <!-- 화면 4: 지식(안전 슬라이스 · T1~T2 습관만 · v0.14 베타) -->
+    <section id="scr-knowledge" class="hide" data-testid="scr-knowledge">
+      <div class="card">
+        <h2>🧠 오늘의 지식 <span class="stub">근거 강한 습관만</span></h2>
+        <p class="dim">가장 확실한 항노화는 알약이 아니라 <b style="color:var(--jade)">습관</b>이에요. 인간 근거가 강한 것부터.</p>
+      </div>
+      <div id="klist"></div>
+      <div class="card" data-testid="know-disclaimer">
+        <p class="faint">일반 정보이며 <b>의학적 조언이 아닙니다.</b> 근거 등급(T1~T2)은 공개 연구 기준이며 개인차가 있어요. 보충제·처방약 정보는 <b>과학 자문 검토 후</b> 별도 공개됩니다.</p>
+      </div>
+    </section>
   </main>
 
   <nav id="nav" class="hide">
     <!-- RV 회신코드 (0-3) — 테스터 1줄 회신, 탭 복사 -->
     <div class="rvbar">
       <span id="rv-label" data-testid="rv-label" style="min-width:74px">결과 코드<br><span style="font-size:8px">복사해 보내주세요</span></span>
-      <code id="rvCode" data-testid="rv-code">RV|v0.13|0000000|0|0|intro|000000</code>
+      <code id="rvCode" data-testid="rv-code">RV|v0.14|0000000|0|0|intro|000000</code>
       <button data-testid="rv-copy" onclick="copyRV()">복사</button>
     </div>
     <div class="navrow">
       <button data-testid="tab-home" aria-selected="true" onclick="goTab('home',this)">홈</button>
       <button data-testid="tab-community" aria-selected="false" onclick="goTab('community',this)">커뮤니티</button>
+      <button data-testid="tab-knowledge" aria-selected="false" onclick="goTab('knowledge',this)">🧠 지식</button>
     </div>
   </nav>
 </div>
@@ -271,8 +284,8 @@ const STRINGS={ko:{
   cheer_sent:"응원 보냄 ✓"
 }};
 function T(k){return (STRINGS[LANG]&&STRINGS[LANG][k])||k;}
-const APP_VERSION="prealpha v0.13";
-const RV_VER="v0.13";
+const APP_VERSION="prealpha v0.14";
+const RV_VER="v0.14";
 /* [v0.13·무결성] 세션 고유 표식 — 실행마다 랜덤. 완주마다 코드가 달라져 재제출·편집 감지 가능. */
 function genNonce(){var r;try{r=crypto.getRandomValues(new Uint32Array(1))[0];}catch(e){r=Math.floor(Math.random()*4294967296);}return r.toString(36).slice(0,7);}
 const EVENT_DATA_GRADE={app_open:"SYSTEM",onboarding_step:"BEHAVIOR",persona_branch_selected:"BEHAVIOR",
@@ -411,6 +424,7 @@ function boot(){
   document.getElementById("scr-persona").classList.add("hide");
   document.getElementById("scr-home").classList.add("hide");
   document.getElementById("scr-community").classList.add("hide");
+  document.getElementById("scr-knowledge").classList.add("hide");
   document.getElementById("nav").classList.add("hide");
   document.getElementById("btn-onboard-done").classList.add("hide");
   document.getElementById("rec-note").classList.add("hide");
@@ -496,6 +510,7 @@ function goTab(t,btn){
   btn.setAttribute("aria-selected","true");
   document.getElementById("scr-home").classList.toggle("hide",t!=="home");
   document.getElementById("scr-community").classList.toggle("hide",t!=="community");
+  document.getElementById("scr-knowledge").classList.toggle("hide",t!=="knowledge");
   state.currentScreen=t;
   traceScreen(t);
   if(t==="community"){/*STEP:6*/ markStep(6);} // 계측 갭: screen_view 스키마 부재 → DOM 앵커(aria-selected)
@@ -572,7 +587,22 @@ document.getElementById("deckBody").addEventListener("click",function(e){
  else if(act==="att")pickAttitude(parseInt(b.getAttribute("data-v"),10));
  else if(act==="continue")finishDeck();
 });
+/* ── [v0.14·베타 전달기둥] 지식 화면 안전 슬라이스 — T1~T2 습관만(자문 없이 배포 가능). 코퍼스 longevity_corpus.json 파생. ── */
+const KDATA=[
+ {n:"운동 (유산소+근력)",t:"T1",hook:"어떤 알약도 이만큼 인간 근거가 없어요.",why:"노화 특징 6개(미토콘드리아·염증·세포노화·근육…)를 동시에 건드려요. 장수 개입 중 인간 근거 최강.",src:"WHO·다수 메타분석"},
+ {n:"충분·규칙적 수면 (7~9시간)",t:"T2",hook:"너무 적게도 많이도 사망률↑(U자).",why:"잘 때 뇌 노폐물 청소(글림프)·대사·염증 조절이 일어나요.",src:"수면-사망률 메타분석"},
+ {n:"지중해식 식단",t:"T2",hook:"심혈관 사건을 실제로 줄인 몇 안 되는 식단 실험.",why:"폴리페놀·식이섬유가 염증·장내미생물에 작용해요.",src:"PREDIMED(NEJM)"},
+ {n:"사회적 연결",t:"T2",hook:"외로움의 사망 위험이 흡연에 필적해요.",why:"만성 스트레스·코르티솔·염증 경로와 연결돼요 — 그래서 이 앱에 ‘응원’이 있어요.",src:"Holt-Lunstad 메타분석"},
+ {n:"금연·절주",t:"T1",hook:"‘소량 음주는 건강’ J커브는 대체로 반박됐어요.",why:"발암물질·산화 스트레스·염증을 줄여요.",src:"GBD·WHO"}
+];
+function renderKnowledge(){var el=document.getElementById("klist");if(!el)return;
+ el.innerHTML=KDATA.map(function(k,i){return '<div class="card" data-testid="know-card-'+i+'">'+
+  '<h2 style="font-size:14px">'+k.n+'<span class="tbadge t-'+k.t+'">'+k.t+'</span></h2>'+
+  '<p class="dim" style="font-size:12.5px">💡 '+k.hook+'</p>'+
+  '<p class="faint" style="margin-top:5px">왜 효과 있나: '+k.why+'</p>'+
+  '<p class="faint" style="margin-top:3px">출처: '+k.src+' · 등급 잠정</p></div>';}).join("");}
 boot();
+renderKnowledge();
 </script>
 </body>
 </html>
