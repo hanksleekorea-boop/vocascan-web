@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Reversible · prealpha v0.14</title>
+<title>Reversible · prealpha v0.15</title>
 <style>
   :root{
     --ink:#0B0E11; --card:#141A20; --card2:#171E25; --jade:#3FE0A2; --amber:#F5B14C;
@@ -123,6 +123,8 @@
   .t-T2{background:rgba(63,224,162,.14);color:var(--jade)}
   .t-T3{background:rgba(245,177,76,.16);color:var(--amber)}
   .t-T4{background:rgba(255,107,94,.16);color:var(--ember)}
+  .opts button.right{border-color:var(--jade);background:rgba(63,224,162,.12);color:var(--jade);font-weight:700}
+  .opts button.wrong{border-color:var(--ember);opacity:.72}
   .hide{display:none!important}
   /* [v0.10·A11Y-2·M7] 모션 감소 선호 시 전이·애니메이션 제거 */
   @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
@@ -133,7 +135,7 @@
   <div class="hd">
     <div class="mark"><span class="up"></span><span class="dn"></span></div>
     <h1>리버서블</h1>
-    <div class="badge">prealpha v0.14</div>
+    <div class="badge">prealpha v0.15</div>
   </div>
   <!-- M1 데이터 지속성 정직 고지 (0-1) — 상시 표시, 무손실·무정지·정직고지 3결과 중 정직고지 충족 -->
   <div class="notice" data-testid="persist-notice" role="note">
@@ -249,7 +251,7 @@
     <!-- RV 회신코드 (0-3) — 테스터 1줄 회신, 탭 복사 -->
     <div class="rvbar">
       <span id="rv-label" data-testid="rv-label" style="min-width:74px">결과 코드<br><span style="font-size:8px">복사해 보내주세요</span></span>
-      <code id="rvCode" data-testid="rv-code">RV|v0.14|0000000|0|0|intro|000000</code>
+      <code id="rvCode" data-testid="rv-code">RV|v0.15|0000000|0|0|intro|000000</code>
       <button data-testid="rv-copy" onclick="copyRV()">복사</button>
     </div>
     <div class="navrow">
@@ -284,8 +286,8 @@ const STRINGS={ko:{
   cheer_sent:"응원 보냄 ✓"
 }};
 function T(k){return (STRINGS[LANG]&&STRINGS[LANG][k])||k;}
-const APP_VERSION="prealpha v0.14";
-const RV_VER="v0.14";
+const APP_VERSION="prealpha v0.15";
+const RV_VER="v0.15";
 /* [v0.13·무결성] 세션 고유 표식 — 실행마다 랜덤. 완주마다 코드가 달라져 재제출·편집 감지 가능. */
 function genNonce(){var r;try{r=crypto.getRandomValues(new Uint32Array(1))[0];}catch(e){r=Math.floor(Math.random()*4294967296);}return r.toString(36).slice(0,7);}
 const EVENT_DATA_GRADE={app_open:"SYSTEM",onboarding_step:"BEHAVIOR",persona_branch_selected:"BEHAVIOR",
@@ -511,6 +513,7 @@ function goTab(t,btn){
   document.getElementById("scr-home").classList.toggle("hide",t!=="home");
   document.getElementById("scr-community").classList.toggle("hide",t!=="community");
   document.getElementById("scr-knowledge").classList.toggle("hide",t!=="knowledge");
+  if(t==="knowledge")kRender();
   state.currentScreen=t;
   traceScreen(t);
   if(t==="community"){/*STEP:6*/ markStep(6);} // 계측 갭: screen_view 스키마 부재 → DOM 앵커(aria-selected)
@@ -588,21 +591,39 @@ document.getElementById("deckBody").addEventListener("click",function(e){
  else if(act==="continue")finishDeck();
 });
 /* ── [v0.14·베타 전달기둥] 지식 화면 안전 슬라이스 — T1~T2 습관만(자문 없이 배포 가능). 코퍼스 longevity_corpus.json 파생. ── */
+/* [v0.15] 쉬운 말 + 퀴즈형(give-before-take): 먼저 맞혀보고→정답+쉬운 설명+출처. 전문어는 괄호로 1회 풀이. */
 const KDATA=[
- {n:"운동 (유산소+근력)",t:"T1",hook:"어떤 알약도 이만큼 인간 근거가 없어요.",why:"노화 특징 6개(미토콘드리아·염증·세포노화·근육…)를 동시에 건드려요. 장수 개입 중 인간 근거 최강.",src:"WHO·다수 메타분석"},
- {n:"충분·규칙적 수면 (7~9시간)",t:"T2",hook:"너무 적게도 많이도 사망률↑(U자).",why:"잘 때 뇌 노폐물 청소(글림프)·대사·염증 조절이 일어나요.",src:"수면-사망률 메타분석"},
- {n:"지중해식 식단",t:"T2",hook:"심혈관 사건을 실제로 줄인 몇 안 되는 식단 실험.",why:"폴리페놀·식이섬유가 염증·장내미생물에 작용해요.",src:"PREDIMED(NEJM)"},
- {n:"사회적 연결",t:"T2",hook:"외로움의 사망 위험이 흡연에 필적해요.",why:"만성 스트레스·코르티솔·염증 경로와 연결돼요 — 그래서 이 앱에 ‘응원’이 있어요.",src:"Holt-Lunstad 메타분석"},
- {n:"금연·절주",t:"T1",hook:"‘소량 음주는 건강’ J커브는 대체로 반박됐어요.",why:"발암물질·산화 스트레스·염증을 줄여요.",src:"GBD·WHO"}
+ {q:"노화를 가장 확실히 늦추는 건?",opts:["운동","영양제 한 알","비싼 주사","굶기"],right:0,t:"T1",ans:"운동",
+  plain:"운동은 몸의 여러 노화 스위치를 한꺼번에 눌러요 — 세포 속 ‘발전소’를 늘리고, 염증을 줄이고, 근육을 지켜요. 사람 대상 연구에서 근거가 가장 강해요.",
+  hook:"어떤 알약도 이만큼 근거가 없어요.",src:"WHO·다수 연구"},
+ {q:"잠은 몇 시간이 좋을까?",opts:["적을수록 좋다","7~9시간 규칙적","많을수록 좋다","상관없다"],right:1,t:"T2",ans:"7~9시간·규칙적",
+  plain:"잘 때 뇌가 하루 동안 쌓인 노폐물을 청소해요. 너무 적게 자도, 너무 많이 자도 안 좋아요.",
+  hook:"수면은 ‘뇌 청소 시간’이에요.",src:"수면 연구"},
+ {q:"어떤 식단이 실제로 심장병을 줄였을까?",opts:["주스 해독","지중해식","무조건 굶기","고기만"],right:1,t:"T2",ans:"지중해식",
+  plain:"채소·생선·올리브유 위주 식단이에요. 좋은 지방과 섬유질이 몸의 염증을 낮춰요. 실제 사람 실험에서 심장병을 줄였어요.",
+  hook:"유행 식단이 아니라, 실험으로 증명된 식단.",src:"대규모 인체 실험"},
+ {q:"외로움은 건강에 얼마나 영향을 줄까?",opts:["거의 없다","담배만큼 위험","가벼운 감기 수준","기분 문제일 뿐"],right:1,t:"T2",ans:"담배에 필적",
+  plain:"사람과의 연결이 약하면 스트레스 호르몬과 염증이 오래 켜져 있어요. 그래서 외로움의 위험이 담배에 비할 정도예요 — 관계도 건강입니다.",
+  hook:"그래서 이 앱에 ‘응원’ 기능이 있어요.",src:"대규모 분석"},
+ {q:"‘소량의 술은 건강에 좋다’?",opts:["맞다","대체로 틀렸다","많을수록 좋다","술마다 다르다"],right:1,t:"T1",ans:"대체로 틀림",
+  plain:"‘적당한 술은 몸에 좋다’는 옛말은 최근 연구로 대부분 뒤집혔어요. 지금은 ‘안전한 최소량은 없다’는 견해가 우세해요.",
+  hook:"몸엔 술이 적을수록 좋아요.",src:"WHO"}
 ];
-function renderKnowledge(){var el=document.getElementById("klist");if(!el)return;
- el.innerHTML=KDATA.map(function(k,i){return '<div class="card" data-testid="know-card-'+i+'">'+
-  '<h2 style="font-size:14px">'+k.n+'<span class="tbadge t-'+k.t+'">'+k.t+'</span></h2>'+
-  '<p class="dim" style="font-size:12.5px">💡 '+k.hook+'</p>'+
-  '<p class="faint" style="margin-top:5px">왜 효과 있나: '+k.why+'</p>'+
-  '<p class="faint" style="margin-top:3px">출처: '+k.src+' · 등급 잠정</p></div>';}).join("");}
+let kIdx=0,kAnswered=false;
+function kRender(){var el=document.getElementById("klist");if(!el)return;
+ if(kIdx>=KDATA.length){el.innerHTML='<div class="card" data-testid="know-done"><h2 style="font-size:15px">🎉 오늘 배운 것</h2><p class="dim" style="font-size:12.5px">방금 5가지는 전부 <b style="color:var(--jade)">근거가 가장 강한 습관</b>이에요. 핵심 한 줄: <b style="color:var(--jade)">가장 확실한 건 알약이 아니라 습관.</b></p><button class="go" data-testid="know-restart" style="margin-top:10px" onclick="kReset()">다시 보기</button></div>';return;}
+ var k=KDATA[kIdx],h='<div class="card" data-testid="know-card-'+kIdx+'"><p class="faint">'+(kIdx+1)+' / '+KDATA.length+' · 먼저 맞혀보세요</p><h2 style="font-size:15px">'+k.q+'</h2><div class="opts">';
+ for(var m=0;m<k.opts.length;m++)h+='<button data-testid="know-opt-'+kIdx+'-'+m+'"'+(kAnswered?' disabled':'')+' onclick="kPick('+m+')">'+k.opts[m]+'</button>';
+ h+='</div>';
+ if(kAnswered)h+='<div class="reveal"><span class="tbadge t-'+k.t+'">✓ '+k.ans+' · 근거 '+k.t+'</span><p style="font-size:12.5px;margin-top:6px">'+k.plain+'</p><p class="dim" style="font-size:12px;margin-top:5px">💡 '+k.hook+'</p><p class="faint" style="margin-top:4px">출처: '+k.src+' · 등급 잠정(자문 검토 전)</p><button class="go" data-testid="know-next-'+kIdx+'" style="margin-top:10px" onclick="kNext()">'+(kIdx===KDATA.length-1?'완료 🎉':'다음 →')+'</button></div>';
+ h+='</div>';el.innerHTML=h;}
+function kPick(i){if(kAnswered)return;kAnswered=true;kRender();
+ var btns=document.querySelectorAll('[data-testid^="know-opt-'+kIdx+'-"]');var r=KDATA[kIdx].right;
+ if(btns[r])btns[r].classList.add("right"); if(i!==r&&btns[i])btns[i].classList.add("wrong");}
+function kNext(){kIdx++;kAnswered=false;kRender();}
+function kReset(){kIdx=0;kAnswered=false;kRender();}
 boot();
-renderKnowledge();
+kRender();
 </script>
 </body>
 </html>
