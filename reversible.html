@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Reversible · prealpha v0.9</title>
+<title>Reversible · prealpha v0.10</title>
 <style>
   :root{
     --ink:#0B0E11; --card:#141A20; --card2:#171E25; --jade:#3FE0A2; --amber:#F5B14C;
-    --ember:#FF6B5E; --on:#F4F7F6; --dim:#97A2A0; --faint:#5E6B68; --hair:rgba(255,255,255,.09);
+    --ember:#FF6B5E; --on:#F4F7F6; --dim:#97A2A0; --faint:#7E8884; --hair:rgba(255,255,255,.09);
     --ease:cubic-bezier(.22,.61,.36,1);
   }
   *{box-sizing:border-box;margin:0;padding:0}
@@ -124,6 +124,8 @@
   .t-T3{background:rgba(245,177,76,.16);color:var(--amber)}
   .t-T4{background:rgba(255,107,94,.16);color:var(--ember)}
   .hide{display:none!important}
+  /* [v0.10·A11Y-2·M7] 모션 감소 선호 시 전이·애니메이션 제거 */
+  @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
@@ -131,7 +133,7 @@
   <div class="hd">
     <div class="mark"><span class="up"></span><span class="dn"></span></div>
     <h1>리버서블</h1>
-    <div class="badge">prealpha v0.9</div>
+    <div class="badge">prealpha v0.10</div>
   </div>
   <!-- M1 데이터 지속성 정직 고지 (0-1) — 상시 표시, 무손실·무정지·정직고지 3결과 중 정직고지 충족 -->
   <div class="notice" data-testid="persist-notice" role="note">
@@ -235,7 +237,7 @@
     <!-- RV 회신코드 (0-3) — 테스터 1줄 회신, 탭 복사 -->
     <div class="rvbar">
       <span>결과 코드<br><span style="font-size:8px">복사해 보내주세요</span></span>
-      <code id="rvCode" data-testid="rv-code">RV|v0.9|0000000|0|0|intro</code>
+      <code id="rvCode" data-testid="rv-code">RV|v0.10|0000000|0|0|intro</code>
       <button data-testid="rv-copy" onclick="copyRV()">복사</button>
     </div>
     <div class="navrow">
@@ -269,8 +271,8 @@ const STRINGS={ko:{
   cheer_sent:"응원 보냄 ✓"
 }};
 function T(k){return (STRINGS[LANG]&&STRINGS[LANG][k])||k;}
-const APP_VERSION="prealpha v0.9";
-const RV_VER="v0.9";
+const APP_VERSION="prealpha v0.10";
+const RV_VER="v0.10";
 const EVENT_DATA_GRADE={app_open:"SYSTEM",onboarding_step:"BEHAVIOR",persona_branch_selected:"BEHAVIOR",
   gauge_view:"CORE",log_action:"BEHAVIOR",streak_incremented:"BEHAVIOR",session_start:"SYSTEM",
   experiment_assignment:"SYSTEM",experiment_exposure:"SYSTEM"};
@@ -509,7 +511,13 @@ function computeRV(){return "RV|"+RV_VER+"|"+stepBitmap()+"|"+log.snapshot().len
 function renderRV(){const el=document.getElementById("rvCode");if(el)el.textContent=computeRV();}
 function copyRV(){
   const code=computeRV();
-  const done=()=>toast(T("toast_rv")+code);
+  const complete=stepBitmap()==="1111111";
+  // [v0.10·경로수정] 미완주 상태에서 복사 시 넛지 — 제3자 S5 이탈(습관 전 코드 복사, drop=home@rv-copy) 대응
+  const done=()=>{
+    if(complete){toast(T("toast_rv")+code);}
+    else{toast("코드 복사됨 — 단 아직 안 끝났어요! 위 ‘다음 할 일’대로 습관 3개 체크 후 다시 복사하면 완주 코드가 됩니다.");
+      var g=document.getElementById("next-guide"); if(g&&g.scrollIntoView)g.scrollIntoView({block:"center"});}
+  };
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(code).then(done).catch(done);}
   else{done();}
 }
