@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Reversible · prealpha v0.15</title>
+<title>Reversible · prealpha v0.16</title>
 <style>
   :root{
     --ink:#0B0E11; --card:#141A20; --card2:#171E25; --jade:#3FE0A2; --amber:#F5B14C;
@@ -135,7 +135,7 @@
   <div class="hd">
     <div class="mark"><span class="up"></span><span class="dn"></span></div>
     <h1>리버서블</h1>
-    <div class="badge">prealpha v0.15</div>
+    <div class="badge">prealpha v0.16</div>
   </div>
   <!-- M1 데이터 지속성 정직 고지 (0-1) — 상시 표시, 무손실·무정지·정직고지 3결과 중 정직고지 충족 -->
   <div class="notice" data-testid="persist-notice" role="note">
@@ -245,19 +245,29 @@
         <p class="faint">일반 정보이며 <b>의학적 조언이 아닙니다.</b> 근거 등급(T1~T2)은 공개 연구 기준이며 개인차가 있어요. 보충제·처방약 정보는 <b>과학 자문 검토 후</b> 별도 공개됩니다.</p>
       </div>
     </section>
+
+    <!-- 화면 5: 진척(오늘 요약 · v0.16) -->
+    <section id="scr-progress" class="hide" data-testid="scr-progress">
+      <div class="card">
+        <h2>📈 오늘의 진척</h2>
+        <p class="dim">지금까지 한 것을 한눈에. <span class="faint">(이 기록은 이 브라우저에만 — 여러 날 저장은 다음 단계예요.)</span></p>
+      </div>
+      <div id="prog"></div>
+    </section>
   </main>
 
   <nav id="nav" class="hide">
     <!-- RV 회신코드 (0-3) — 테스터 1줄 회신, 탭 복사 -->
     <div class="rvbar">
       <span id="rv-label" data-testid="rv-label" style="min-width:74px">결과 코드<br><span style="font-size:8px">복사해 보내주세요</span></span>
-      <code id="rvCode" data-testid="rv-code">RV|v0.15|0000000|0|0|intro|000000</code>
+      <code id="rvCode" data-testid="rv-code">RV|v0.16|0000000|0|0|intro|000000</code>
       <button data-testid="rv-copy" onclick="copyRV()">복사</button>
     </div>
     <div class="navrow">
       <button data-testid="tab-home" aria-selected="true" onclick="goTab('home',this)">홈</button>
       <button data-testid="tab-community" aria-selected="false" onclick="goTab('community',this)">커뮤니티</button>
       <button data-testid="tab-knowledge" aria-selected="false" onclick="goTab('knowledge',this)">🧠 지식</button>
+      <button data-testid="tab-progress" aria-selected="false" onclick="goTab('progress',this)">📈 진척</button>
     </div>
   </nav>
 </div>
@@ -286,8 +296,8 @@ const STRINGS={ko:{
   cheer_sent:"응원 보냄 ✓"
 }};
 function T(k){return (STRINGS[LANG]&&STRINGS[LANG][k])||k;}
-const APP_VERSION="prealpha v0.15";
-const RV_VER="v0.15";
+const APP_VERSION="prealpha v0.16";
+const RV_VER="v0.16";
 /* [v0.13·무결성] 세션 고유 표식 — 실행마다 랜덤. 완주마다 코드가 달라져 재제출·편집 감지 가능. */
 function genNonce(){var r;try{r=crypto.getRandomValues(new Uint32Array(1))[0];}catch(e){r=Math.floor(Math.random()*4294967296);}return r.toString(36).slice(0,7);}
 const EVENT_DATA_GRADE={app_open:"SYSTEM",onboarding_step:"BEHAVIOR",persona_branch_selected:"BEHAVIOR",
@@ -427,6 +437,7 @@ function boot(){
   document.getElementById("scr-home").classList.add("hide");
   document.getElementById("scr-community").classList.add("hide");
   document.getElementById("scr-knowledge").classList.add("hide");
+  document.getElementById("scr-progress").classList.add("hide");
   document.getElementById("nav").classList.add("hide");
   document.getElementById("btn-onboard-done").classList.add("hide");
   document.getElementById("rec-note").classList.add("hide");
@@ -513,7 +524,9 @@ function goTab(t,btn){
   document.getElementById("scr-home").classList.toggle("hide",t!=="home");
   document.getElementById("scr-community").classList.toggle("hide",t!=="community");
   document.getElementById("scr-knowledge").classList.toggle("hide",t!=="knowledge");
+  document.getElementById("scr-progress").classList.toggle("hide",t!=="progress");
   if(t==="knowledge")kRender();
+  if(t==="progress")renderProgress();
   state.currentScreen=t;
   traceScreen(t);
   if(t==="community"){/*STEP:6*/ markStep(6);} // 계측 갭: screen_view 스키마 부재 → DOM 앵커(aria-selected)
@@ -622,6 +635,18 @@ function kPick(i){if(kAnswered)return;kAnswered=true;kRender();
  if(btns[r])btns[r].classList.add("right"); if(i!==r&&btns[i])btns[i].classList.add("wrong");}
 function kNext(){kIdx++;kAnswered=false;kRender();}
 function kReset(){kIdx=0;kAnswered=false;kRender();}
+/* [v0.16] 진척 화면 — 오늘 요약(습관·점수·응원). 세션 전용·정직 고지. 여러 날 추이는 저장 기능(다음 단계) 필요. */
+function renderProgress(){var el=document.getElementById("prog");if(!el||!state)return;
+ var n=Object.values(state.checked).filter(Boolean).length;
+ var pace=computeHabitPace(state.checked);
+ var cheered=!!(state.cheered[0]||state.cheered[1]);
+ var items=orderedStack().map(function(it){return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0"><div class="box" style="width:18px;height:18px;font-size:11px">'+(state.checked[it.id]?"✓":"")+'</div><span style="font-size:12.5px;color:'+(state.checked[it.id]?"var(--jade)":"var(--dim)")+'">'+it.nm+'</span></div>';}).join("");
+ var msg=n>=3?"오늘 목표 달성! 이게 하루 루틴이에요.":"습관을 채울수록 점수가 내려가요 ("+(3-n)+"개 더).";
+ el.innerHTML=
+  '<div class="card" data-testid="prog-habits"><h2 style="font-size:14px">오늘 습관 <b style="color:var(--jade)">'+n+'</b>/5</h2>'+items+'<p class="faint" style="margin-top:6px">'+msg+'</p></div>'+
+  '<div class="card"><h2 style="font-size:14px">노화속도 점수</h2><div class="delta" style="font-size:26px" data-testid="prog-pace">'+pace.toFixed(2)+'×</div><p class="faint">평균 1.0보다 낮을수록 좋아요 — 습관 점수예요(몸 나이를 잰 건 아니에요).</p></div>'+
+  '<div class="card"><h2 style="font-size:14px">커뮤니티</h2><p class="dim" style="font-size:12.5px">'+(cheered?"✓ 오늘 버디를 응원했어요.":"아직 응원 전 — 커뮤니티 탭에서 버디를 응원해보세요.")+'</p></div>';
+}
 boot();
 kRender();
 </script>
