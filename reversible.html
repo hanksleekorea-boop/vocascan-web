@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Reversible · prealpha v0.10</title>
+<title>Reversible · prealpha v0.11</title>
 <style>
   :root{
     --ink:#0B0E11; --card:#141A20; --card2:#171E25; --jade:#3FE0A2; --amber:#F5B14C;
@@ -133,7 +133,7 @@
   <div class="hd">
     <div class="mark"><span class="up"></span><span class="dn"></span></div>
     <h1>리버서블</h1>
-    <div class="badge">prealpha v0.10</div>
+    <div class="badge">prealpha v0.11</div>
   </div>
   <!-- M1 데이터 지속성 정직 고지 (0-1) — 상시 표시, 무손실·무정지·정직고지 3결과 중 정직고지 충족 -->
   <div class="notice" data-testid="persist-notice" role="note">
@@ -237,7 +237,7 @@
     <!-- RV 회신코드 (0-3) — 테스터 1줄 회신, 탭 복사 -->
     <div class="rvbar">
       <span>결과 코드<br><span style="font-size:8px">복사해 보내주세요</span></span>
-      <code id="rvCode" data-testid="rv-code">RV|v0.10|0000000|0|0|intro</code>
+      <code id="rvCode" data-testid="rv-code">RV|v0.11|0000000|0|0|intro</code>
       <button data-testid="rv-copy" onclick="copyRV()">복사</button>
     </div>
     <div class="navrow">
@@ -271,8 +271,8 @@ const STRINGS={ko:{
   cheer_sent:"응원 보냄 ✓"
 }};
 function T(k){return (STRINGS[LANG]&&STRINGS[LANG][k])||k;}
-const APP_VERSION="prealpha v0.10";
-const RV_VER="v0.10";
+const APP_VERSION="prealpha v0.11";
+const RV_VER="v0.11";
 const EVENT_DATA_GRADE={app_open:"SYSTEM",onboarding_step:"BEHAVIOR",persona_branch_selected:"BEHAVIOR",
   gauge_view:"CORE",log_action:"BEHAVIOR",streak_incremented:"BEHAVIOR",session_start:"SYSTEM",
   experiment_assignment:"SYSTEM",experiment_exposure:"SYSTEM"};
@@ -399,7 +399,7 @@ function boot(){
   userId="u_"+fnv1a(uuid()).toString(36);
   sessionId="s_"+Date.now().toString(36);
   log=createEventLog({userId,sessionId});
-  state={persona:null,onboarded:false,gaugeSeen:false,checked:{},cheered:{},steps:{},trace:[],lastTap:null,currentScreen:"intro"};
+  state={persona:null,onboarded:false,gaugeSeen:false,checked:{},cheered:{},steps:{},trace:[],lastTap:null,currentScreen:"intro",scrolledCTA:false};
   document.querySelectorAll(".dot").forEach(d=>d.classList.remove("on"));
   log.track("session_start",{});
   log.track("app_open",{cold_start:true}); /*STEP:1*/ markStep(1);
@@ -466,6 +466,10 @@ function toggleItem(id,i){
   const n=Object.values(state.checked).filter(Boolean).length;
   if(n>=3) {/*STEP:5*/ markStep(5);}
   renderStack();updateCount();renderRV();renderGuide();
+  // [v0.11] 습관 3개 완료 시 커뮤니티 CTA로 1회 자동 이동 — 제3자 S6 이탈(응원 전 조기 복사) 대응
+  if(n>=3&&!state.cheered[0]&&!state.cheered[1]&&!state.scrolledCTA){
+    state.scrolledCTA=true;var g=document.getElementById("next-guide");if(g&&g.scrollIntoView)g.scrollIntoView({block:"center"});
+  }
 }
 function updateCount(){
   const n=Object.values(state.checked).filter(Boolean).length;
@@ -512,11 +516,15 @@ function renderRV(){const el=document.getElementById("rvCode");if(el)el.textCont
 function copyRV(){
   const code=computeRV();
   const complete=stepBitmap()==="1111111";
-  // [v0.10·경로수정] 미완주 상태에서 복사 시 넛지 — 제3자 S5 이탈(습관 전 코드 복사, drop=home@rv-copy) 대응
+  // [v0.11·경로수정] 단계별 맞춤 넛지 — 제3자 2명 모두 완주 전 홈에서 조기 복사(drop=home@rv-copy). 남은 단계를 정확히 지시.
   const done=()=>{
-    if(complete){toast(T("toast_rv")+code);}
-    else{toast("코드 복사됨 — 단 아직 안 끝났어요! 위 ‘다음 할 일’대로 습관 3개 체크 후 다시 복사하면 완주 코드가 됩니다.");
-      var g=document.getElementById("next-guide"); if(g&&g.scrollIntoView)g.scrollIntoView({block:"center"});}
+    if(complete){toast(T("toast_rv")+code);return;}
+    var n=Object.values(state.checked).filter(Boolean).length,msg;
+    if(n<3)msg="코드 복사됨 — 아직 안 끝났어요! 먼저 습관 "+(3-n)+"개를 더 체크하세요 (지금 "+n+"/3).";
+    else if(!state.cheered[0]&&!state.cheered[1])msg="코드 복사됨 — 마지막 한 걸음! 아래 ‘커뮤니티에서 응원하고 마치기’를 누르면 완주예요.";
+    else msg="코드 복사됨.";
+    toast(msg);
+    var g=document.getElementById("next-guide");if(g&&g.scrollIntoView)g.scrollIntoView({block:"center"});
   };
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(code).then(done).catch(done);}
   else{done();}
