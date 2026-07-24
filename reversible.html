@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Reversible · prealpha v0.8</title>
+<title>Reversible · prealpha v0.9</title>
 <style>
   :root{
     --ink:#0B0E11; --card:#141A20; --card2:#171E25; --jade:#3FE0A2; --amber:#F5B14C;
@@ -131,7 +131,7 @@
   <div class="hd">
     <div class="mark"><span class="up"></span><span class="dn"></span></div>
     <h1>리버서블</h1>
-    <div class="badge">prealpha v0.8</div>
+    <div class="badge">prealpha v0.9</div>
   </div>
   <!-- M1 데이터 지속성 정직 고지 (0-1) — 상시 표시, 무손실·무정지·정직고지 3결과 중 정직고지 충족 -->
   <div class="notice" data-testid="persist-notice" role="note">
@@ -235,7 +235,7 @@
     <!-- RV 회신코드 (0-3) — 테스터 1줄 회신, 탭 복사 -->
     <div class="rvbar">
       <span>결과 코드<br><span style="font-size:8px">복사해 보내주세요</span></span>
-      <code id="rvCode" data-testid="rv-code">RV|v0.8|0000000|0|0</code>
+      <code id="rvCode" data-testid="rv-code">RV|v0.9|0000000|0|0|intro</code>
       <button data-testid="rv-copy" onclick="copyRV()">복사</button>
     </div>
     <div class="navrow">
@@ -269,8 +269,8 @@ const STRINGS={ko:{
   cheer_sent:"응원 보냄 ✓"
 }};
 function T(k){return (STRINGS[LANG]&&STRINGS[LANG][k])||k;}
-const APP_VERSION="prealpha v0.8";
-const RV_VER="v0.8";
+const APP_VERSION="prealpha v0.9";
+const RV_VER="v0.9";
 const EVENT_DATA_GRADE={app_open:"SYSTEM",onboarding_step:"BEHAVIOR",persona_branch_selected:"BEHAVIOR",
   gauge_view:"CORE",log_action:"BEHAVIOR",streak_incremented:"BEHAVIOR",session_start:"SYSTEM",
   experiment_assignment:"SYSTEM",experiment_exposure:"SYSTEM"};
@@ -330,7 +330,7 @@ const DECK=[
 function cnum(c){return c.id.replace("iq_","");}
 function enterCard(c){log.track("onboarding_step",{step_id:c.id,day_index:0,direction:"enter"});}
 function exitCard(c){log.track("onboarding_step",{step_id:c.id,day_index:0,direction:"exit"});}
-function startDeck(){document.getElementById("scr-intro").classList.add("hide");document.getElementById("scr-deck").classList.remove("hide");deckIdx=0;deckReveal=false;attitudePicked=false;enterCard(DECK[0]);renderDeck();}
+function startDeck(){state.currentScreen="deck";document.getElementById("scr-intro").classList.add("hide");document.getElementById("scr-deck").classList.remove("hide");deckIdx=0;deckReveal=false;attitudePicked=false;enterCard(DECK[0]);renderDeck();}
 function skipDeck(){introProfile.skipped=true;log.track("onboarding_step",{step_id:"iq_skip",day_index:0,direction:"exit"});goPersona();}
 function deckNext(){exitCard(DECK[deckIdx]);deckIdx++;deckReveal=false;attitudePicked=false;enterCard(DECK[deckIdx]);renderDeck();}
 function finishDeck(){exitCard(DECK[deckIdx]);goPersona();}
@@ -373,6 +373,7 @@ function renderDeck(){
  document.getElementById("deckBody").innerHTML='<div class="ddots">'+dots+'</div>'+h;
 }
 function goPersona(){
+ state.currentScreen="persona";
  document.getElementById("scr-intro").classList.add("hide");document.getElementById("scr-deck").classList.add("hide");
  document.getElementById("scr-persona").classList.remove("hide");
  if(introProfile.archetype){
@@ -396,7 +397,7 @@ function boot(){
   userId="u_"+fnv1a(uuid()).toString(36);
   sessionId="s_"+Date.now().toString(36);
   log=createEventLog({userId,sessionId});
-  state={persona:null,onboarded:false,gaugeSeen:false,checked:{},cheered:{},steps:{},trace:[],lastTap:null};
+  state={persona:null,onboarded:false,gaugeSeen:false,checked:{},cheered:{},steps:{},trace:[],lastTap:null,currentScreen:"intro"};
   document.querySelectorAll(".dot").forEach(d=>d.classList.remove("on"));
   log.track("session_start",{});
   log.track("app_open",{cold_start:true}); /*STEP:1*/ markStep(1);
@@ -440,6 +441,7 @@ function finishOnboarding(){
   document.getElementById("scr-persona").classList.add("hide");
   document.getElementById("scr-home").classList.remove("hide");
   document.getElementById("nav").classList.remove("hide");
+  state.currentScreen="home";
   applyPersonalization();
   viewGauge();            // [v0.8·0-30] 게이지 자동 확인 — S4 막다른 길 제거(탭 불요). 게이지는 홈에 이미 노출됨 = 봤다.
   traceScreen('home');
@@ -486,6 +488,7 @@ function goTab(t,btn){
   btn.setAttribute("aria-selected","true");
   document.getElementById("scr-home").classList.toggle("hide",t!=="home");
   document.getElementById("scr-community").classList.toggle("hide",t!=="community");
+  state.currentScreen=t;
   traceScreen(t);
   if(t==="community"){/*STEP:6*/ markStep(6);} // 계측 갭: screen_view 스키마 부재 → DOM 앵커(aria-selected)
 }
@@ -500,7 +503,9 @@ function cheer(idx,btn){
 /* ── RV 회신코드 (0-3): RV|버전|스텝비트맵(7)|이벤트수|체크섬 ── */
 function stepBitmap(){let b="";for(let n=1;n<=7;n++)b+=state.steps[n]?"1":"0";return b;}
 function rvChecksum(){return fnv1a(log.snapshot().map(e=>e.event_name).join("|")).toString(36).slice(0,6);}
-function computeRV(){return "RV|"+RV_VER+"|"+stepBitmap()+"|"+log.snapshot().length+"|"+rvChecksum();}
+/* [v0.9·WS-B] 드롭 태그 — 완주면 done, 미완주면 현재화면@마지막탭(개인정보 없음). 실패 테스터 이탈지점을 회신 1줄로 원격 판정. */
+function dropTag(){return (stepBitmap()==="1111111")?"done":((state.currentScreen||"intro")+"@"+(state.lastTap||"none"));}
+function computeRV(){return "RV|"+RV_VER+"|"+stepBitmap()+"|"+log.snapshot().length+"|"+rvChecksum()+"|"+dropTag();}
 function renderRV(){const el=document.getElementById("rvCode");if(el)el.textContent=computeRV();}
 function copyRV(){
   const code=computeRV();
