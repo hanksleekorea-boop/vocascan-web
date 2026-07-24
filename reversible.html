@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Reversible · prealpha v0.17</title>
+<title>Reversible · prealpha v0.18</title>
 <style>
   :root{
     --ink:#0B0E11; --card:#141A20; --card2:#171E25; --jade:#3FE0A2; --amber:#F5B14C;
@@ -135,7 +135,7 @@
   <div class="hd">
     <div class="mark"><span class="up"></span><span class="dn"></span></div>
     <h1>리버서블</h1>
-    <div class="badge">prealpha v0.17</div>
+    <div class="badge">prealpha v0.18</div>
   </div>
   <!-- M1 데이터 지속성 정직 고지 (0-1) — 상시 표시, 무손실·무정지·정직고지 3결과 중 정직고지 충족 -->
   <div class="notice" data-testid="persist-notice" role="note">
@@ -240,7 +240,7 @@
         <h2>🧠 오늘의 지식 <span class="stub">근거 강한 습관만</span></h2>
         <p class="dim">가장 확실한 항노화는 알약이 아니라 <b style="color:var(--jade)">습관</b>이에요. 인간 근거가 강한 것부터.</p>
       </div>
-      <div id="klist"></div>
+      <div id="klist" role="region" aria-live="polite" aria-label="건강 습관 퀴즈"></div>
       <div class="card" data-testid="know-disclaimer">
         <p class="faint">일반 정보이며 <b>의학적 조언이 아닙니다.</b> 근거 등급(T1~T2)은 공개 연구 기준이며 개인차가 있어요. 보충제·처방약 정보는 <b>과학 자문 검토 후</b> 별도 공개됩니다.</p>
       </div>
@@ -252,7 +252,7 @@
         <h2>📈 오늘의 진척</h2>
         <p class="dim">지금까지 한 것을 한눈에. <span class="faint">(이 기록은 이 브라우저에만 — 여러 날 저장은 다음 단계예요.)</span></p>
       </div>
-      <div id="prog"></div>
+      <div id="prog" role="region" aria-live="polite" aria-label="오늘 진척 요약"></div>
     </section>
   </main>
 
@@ -260,7 +260,7 @@
     <!-- RV 회신코드 (0-3) — 테스터 1줄 회신, 탭 복사 -->
     <div class="rvbar">
       <span id="rv-label" data-testid="rv-label" style="min-width:74px">결과 코드<br><span style="font-size:8px">복사해 보내주세요</span></span>
-      <code id="rvCode" data-testid="rv-code">RV|v0.17|0000000|0|0|intro|000000</code>
+      <code id="rvCode" data-testid="rv-code">RV|v0.18|0000000|0|0|intro|000000</code>
       <button data-testid="rv-copy" onclick="copyRV()">복사</button>
     </div>
     <div class="navrow">
@@ -296,8 +296,8 @@ const STRINGS={ko:{
   cheer_sent:"응원 보냄 ✓"
 }};
 function T(k){return (STRINGS[LANG]&&STRINGS[LANG][k])||k;}
-const APP_VERSION="prealpha v0.17";
-const RV_VER="v0.17";
+const APP_VERSION="prealpha v0.18";
+const RV_VER="v0.18";
 /* [v0.13·무결성] 세션 고유 표식 — 실행마다 랜덤. 완주마다 코드가 달라져 재제출·편집 감지 가능. */
 function genNonce(){var r;try{r=crypto.getRandomValues(new Uint32Array(1))[0];}catch(e){r=Math.floor(Math.random()*4294967296);}return r.toString(36).slice(0,7);}
 const EVENT_DATA_GRADE={app_open:"SYSTEM",onboarding_step:"BEHAVIOR",persona_branch_selected:"BEHAVIOR",
@@ -635,7 +635,22 @@ const KDATA=[
   hook:"‘무엇을’ 먹느냐만큼 ‘언제’ 먹느냐도 중요해요.",src:"대사·수면 연구"},
  {q:"오래 지속되는 스트레스는 몸을 어떻게 할까?",opts:["단련시킨다","늙게 만든다","영향 없다","살을 뺀다"],right:1,t:"T2",ans:"늙게 만듦",
   plain:"짧은 스트레스는 괜찮아요. 하지만 오래 켜져 있는 스트레스는 염증과 스트레스 호르몬을 통해 몸을 늙게 해요. 깊은 호흡·산책·사람과의 대화가 이걸 낮춰줘요.",
-  hook:"스트레스 자체보다 ‘오래 켜져 있는 것’이 문제예요.",src:"스트레스 연구"}
+  hook:"스트레스 자체보다 ‘오래 켜져 있는 것’이 문제예요.",src:"스트레스 연구"},
+ {q:"노화를 가장 빨리 앞당기는 습관은?",opts:["담배","커피","매운 음식","늦잠"],right:0,t:"T1",ans:"담배",
+  plain:"담배는 거의 모든 장기의 노화를 앞당겨요. 대신 끊으면 몇 년 안에 상당 부분이 회복돼요 — 몸은 늦게라도 되돌리려 해요.",
+  hook:"끊는 그 순간부터 몸이 회복을 시작해요.",src:"WHO"},
+ {q:"밥 먹고 바로 뭘 하면 혈당에 좋을까?",opts:["눕기","가벼운 걷기","커피","낮잠"],right:1,t:"T2",ans:"가벼운 걷기",
+  plain:"식후 10~15분 가볍게 걸으면 혈당이 확 치솟는 걸 눌러줘요. 격한 운동이 아니어도 돼요.",
+  hook:"밥 먹고 소파 대신 몇 분만 걸어보세요.",src:"대사 연구"},
+ {q:"잠을 잘 자려면 커피는 언제까지가 좋을까?",opts:["상관없다","오후 늦게는 피하기","저녁도 괜찮다","자기 전에도 OK"],right:1,t:"T2",ans:"오후 늦게 피하기",
+  plain:"카페인은 몸에서 생각보다 오래 남아서, 오후 늦게 마시면 밤잠을 방해해요. 오후엔 디카페인이 나아요.",
+  hook:"잠이 얕다면 커피 시간을 앞당겨보세요.",src:"수면 연구"},
+ {q:"매 끼 배부르게 꽉 채워 먹는 습관은?",opts:["건강하다","약간 덜 먹는 게 나음","많이 먹고 운동","상관없다"],right:1,t:"T2",ans:"약간 덜",
+  plain:"늘 과식하면 몸의 대사에 부담이 쌓여요. 배부르기 직전(약 80%)에서 멈추는 습관이 여러 연구에서 더 유리했어요.",
+  hook:"‘조금 덜’이 오래 사는 쪽에 가까워요.",src:"관찰·인체 일부(잠정)"},
+ {q:"은퇴 후 오래 건강하게 사는 사람들의 공통점은?",opts:["완전한 휴식","활발한 관계·할 일","걱정 없이 지냄","TV 많이 보기"],right:1,t:"T2",ans:"관계·할 일",
+  plain:"오래 사는 지역 사람들은 사람을 자주 만나고, 매일 할 일과 목적이 있어요. 관계와 목적이 몸에도 약이 돼요.",
+  hook:"‘할 일이 있는 삶’이 장수의 공통 조건이에요.",src:"장수지역 연구"}
 ];
 let kIdx=0,kAnswered=false;
 function kRender(){var el=document.getElementById("klist");if(!el)return;
