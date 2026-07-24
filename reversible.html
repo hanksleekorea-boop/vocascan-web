@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Reversible · prealpha v0.7</title>
+<title>Reversible · prealpha v0.8</title>
 <style>
   :root{
     --ink:#0B0E11; --card:#141A20; --card2:#171E25; --jade:#3FE0A2; --amber:#F5B14C;
@@ -131,7 +131,7 @@
   <div class="hd">
     <div class="mark"><span class="up"></span><span class="dn"></span></div>
     <h1>리버서블</h1>
-    <div class="badge">prealpha v0.7</div>
+    <div class="badge">prealpha v0.8</div>
   </div>
   <!-- M1 데이터 지속성 정직 고지 (0-1) — 상시 표시, 무손실·무정지·정직고지 3결과 중 정직고지 충족 -->
   <div class="notice" data-testid="persist-notice" role="note">
@@ -194,7 +194,7 @@
         <div class="pivot"><div class="fill" id="gfill" style="left:50%;right:50%"></div><div class="pin"></div></div>
         <div class="plabels"><span>0.8 (더 느리게)</span><span>평균 1.0</span><span>1.2</span></div>
         <p class="faint" data-testid="gauge-formula" style="margin-top:8px">체크한 습관의 <b>근거 등급에 비례</b>해 계산 — 운동(T1)이 NMN(T4)의 6배. 생체나이 측정이 아닙니다.</p>
-        <p class="faint" style="margin-top:4px">한 번 탭하면 “오늘 확인” 처리됩니다 <span class="seen hide" id="gauge-seen" data-testid="gauge-seen">✓ 확인됨</span></p>
+        <p class="faint" style="margin-top:4px">오늘 상태가 여기 표시됩니다 <span class="seen hide" id="gauge-seen" data-testid="gauge-seen">✓ 오늘 확인됨</span></p>
         <p class="faint" id="gauge-tone" data-testid="gauge-tone" style="margin-top:6px"></p>
       </div>
       <div class="card">
@@ -235,7 +235,7 @@
     <!-- RV 회신코드 (0-3) — 테스터 1줄 회신, 탭 복사 -->
     <div class="rvbar">
       <span>결과 코드<br><span style="font-size:8px">복사해 보내주세요</span></span>
-      <code id="rvCode" data-testid="rv-code">RV|v0.7|0000000|0|0</code>
+      <code id="rvCode" data-testid="rv-code">RV|v0.8|0000000|0|0</code>
       <button data-testid="rv-copy" onclick="copyRV()">복사</button>
     </div>
     <div class="navrow">
@@ -262,15 +262,15 @@ const SCHEMA_VERSION=1;
    정적 HTML 문자열은 실제 다국어 채택(베타) 시 data-i18n로 이관. */
 const LANG="ko";
 const STRINGS={ko:{
-  toast_home:"홈 진입 — 게이지를 탭해 오늘 상태를 확인하세요",
+  toast_home:"오늘 점수 확인 완료 — 이제 습관 3개를 체크해요",
   toast_cheer:"응원을 보냈습니다 — 관통 경로 완주!",
   toast_reset:"초기화 완료 — 처음부터 다시",
   toast_rv:"회신코드 복사됨 — 이 1줄을 그대로 회신하세요: ",
   cheer_sent:"응원 보냄 ✓"
 }};
 function T(k){return (STRINGS[LANG]&&STRINGS[LANG][k])||k;}
-const APP_VERSION="prealpha v0.7";
-const RV_VER="v0.7";
+const APP_VERSION="prealpha v0.8";
+const RV_VER="v0.8";
 const EVENT_DATA_GRADE={app_open:"SYSTEM",onboarding_step:"BEHAVIOR",persona_branch_selected:"BEHAVIOR",
   gauge_view:"CORE",log_action:"BEHAVIOR",streak_incremented:"BEHAVIOR",session_start:"SYSTEM",
   experiment_assignment:"SYSTEM",experiment_exposure:"SYSTEM"};
@@ -396,7 +396,7 @@ function boot(){
   userId="u_"+fnv1a(uuid()).toString(36);
   sessionId="s_"+Date.now().toString(36);
   log=createEventLog({userId,sessionId});
-  state={persona:null,onboarded:false,gaugeSeen:false,checked:{},cheered:{},steps:{}};
+  state={persona:null,onboarded:false,gaugeSeen:false,checked:{},cheered:{},steps:{},trace:[],lastTap:null};
   document.querySelectorAll(".dot").forEach(d=>d.classList.remove("on"));
   log.track("session_start",{});
   log.track("app_open",{cold_start:true}); /*STEP:1*/ markStep(1);
@@ -440,7 +440,9 @@ function finishOnboarding(){
   document.getElementById("scr-persona").classList.add("hide");
   document.getElementById("scr-home").classList.remove("hide");
   document.getElementById("nav").classList.remove("hide");
-  applyPersonalization();renderGuide();
+  applyPersonalization();
+  viewGauge();            // [v0.8·0-30] 게이지 자동 확인 — S4 막다른 길 제거(탭 불요). 게이지는 홈에 이미 노출됨 = 봤다.
+  traceScreen('home');
   toast(T("toast_home"));
 }
 function viewGauge(){
@@ -469,11 +471,13 @@ function updateCount(){
   document.getElementById("gfill").style.left=((pace-0.8)/0.4*100)+"%";
 }
 function goCommunity(){var b=document.querySelector('[data-testid="tab-community"]');goTab('community',b);}
+/* [v0.8·G-1] 로컬 드롭 계측 — 화면 진입·마지막 탭·현재 스텝만(개인정보·입력값 무수집). 이벤트 로그·RV 체크섬과 무관. */
+function traceScreen(s){if(state&&state.trace)state.trace.push({screen:s,t:Date.now(),lastTap:state.lastTap||null,reachedSteps:Object.keys(state.steps).length});}
 function renderGuide(){
   var el=document.getElementById("next-guide");if(!el)return;var n=Object.values(state.checked).filter(Boolean).length;var h;
-  if(!state.gaugeSeen)h='<b style="color:var(--jade)">다음 할 일 ①</b> 위 <b>점수 카드를 한 번 탭</b>해서 오늘 상태를 확인하세요.';
-  else if(n<3)h='<b style="color:var(--jade)">다음 할 일 ②</b> 아래 <b>‘오늘의 스택’에서 3개</b>를 체크하세요. (지금 '+n+'/3)';
-  else if(!state.cheered[0]&&!state.cheered[1])h='<b style="color:var(--jade)">다음 할 일 ③</b> 거의 끝났어요!<br><button class="go" data-testid="guide-goto-community" onclick="goCommunity()" style="margin-top:8px">커뮤니티에서 버디 응원하고 마치기 →</button>';
+  if(!state.gaugeSeen)h='<b style="color:var(--jade)">다음 할 일 ① 점수 확인</b><br>위 <b>점수 카드</b>에 오늘 상태가 표시돼요.';
+  else if(n<3)h='<b style="color:var(--jade)">다음 할 일 ① 습관 3개 체크 ↓</b><br>바로 아래 <b>‘오늘의 스택’</b>에서 3개를 눌러 체크하세요. (지금 '+n+'/3)';
+  else if(!state.cheered[0]&&!state.cheered[1])h='<b style="color:var(--jade)">다음 할 일 ② 버디 응원</b><br>거의 끝났어요!<br><button class="go" data-testid="guide-goto-community" onclick="goCommunity()" style="margin-top:8px">커뮤니티에서 버디 응원하고 마치기 →</button>';
   else h='<b style="color:var(--jade)">🎉 오늘 완료!</b> 잘하셨어요 — 이게 하루 루틴이에요.';
   el.innerHTML=h;
 }
@@ -482,6 +486,7 @@ function goTab(t,btn){
   btn.setAttribute("aria-selected","true");
   document.getElementById("scr-home").classList.toggle("hide",t!=="home");
   document.getElementById("scr-community").classList.toggle("hide",t!=="community");
+  traceScreen(t);
   if(t==="community"){/*STEP:6*/ markStep(6);} // 계측 갭: screen_view 스키마 부재 → DOM 앵커(aria-selected)
 }
 function cheer(idx,btn){
@@ -519,7 +524,9 @@ let toastTimer;
 function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("on");
   clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("on"),2600);}
 // L1/E1 하네스 관찰 창구(우회 아님 — 조작은 전부 UI로, 여기선 읽기만)
-window.__rvs={snapshot:()=>log.snapshot(),stats:()=>log.stats(),steps:()=>state.steps,rv:()=>computeRV(),intro:()=>introProfile,version:APP_VERSION};
+window.__rvs={snapshot:()=>log.snapshot(),stats:()=>log.stats(),steps:()=>state.steps,rv:()=>computeRV(),intro:()=>introProfile,trace:()=>state.trace,version:APP_VERSION};
+/* [v0.8·G-1] 마지막 탭 대상(data-testid만) 기록 — 드롭 지점 분석용, 입력 내용 미기록 */
+document.addEventListener("click",function(e){var b=e.target&&e.target.closest&&e.target.closest("[data-testid]");if(b&&typeof state==="object"&&state)state.lastTap=b.getAttribute("data-testid");},true);
 document.addEventListener("keydown",function(e){
   if((e.key==="Enter"||e.key===" ")&&e.target&&e.target.classList&&e.target.classList.contains("kbd")){e.preventDefault();e.target.click();}
 });
